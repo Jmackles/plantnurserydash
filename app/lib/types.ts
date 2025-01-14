@@ -43,3 +43,17 @@ export interface ApiResponse {
     message?: string;
     customer?: Customer;
 }
+
+export interface DashboardMetrics {
+    totalCustomers: number;
+    activeWantlists: number;
+    totalPlants: number;
+    pendingOrders: number;
+}
+
+export interface ActivityItem {
+    type: 'wantlist' | 'customer' | 'order';
+    customer: string;
+    time: string;
+    action: string;
+}

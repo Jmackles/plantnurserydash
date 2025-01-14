@@ -1,66 +1,89 @@
+"use client"
+import { useEffect, useState } from 'react';
+import { DashboardMetrics, ActivityItem, Customer, WantListEntry } from './lib/types';
+import { fetchCustomers, fetchWantListEntries } from './lib/api';
+import { getMetrics } from './utils/Metrics';
 import Link from 'next/link';
 
 export default function Dashboard() {
-  const mockMetrics = {
-    totalCustomers: 156,
-    activeWantlists: 23,
-    totalPlants: 450,
-    pendingOrders: 12
-  };
+    const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+    const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
 
-  const recentActivity = [
-    { type: 'wantlist', customer: 'Jane Smith', time: '2h ago', action: 'New request for Monstera' },
-    { type: 'customer', customer: 'Bob Wilson', time: '3h ago', action: 'Updated contact info' },
-    { type: 'order', customer: 'Alice Brown', time: '5h ago', action: 'Completed order #123' },
-  ];
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [customers, wantListEntries] = await Promise.all([
+                    fetchCustomers(),
+                    fetchWantListEntries()
+                ]);
 
-  return (
-    <main className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-sage-700 mb-8">Nursery Dashboard</h1>
-      
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <Link href="/customers/new" className="btn-primary text-center">
-          New Customer
-        </Link>
-        <Link href="/wantlist/new" className="btn-secondary text-center">
-          New Want List
-        </Link>
-        <Link href="/customers" className="btn-primary text-center">
-          View Customers
-        </Link>
-        <Link href="/wantlist" className="btn-secondary text-center">
-          View Want Lists
-        </Link>
-      </div>
+                const orders = []; // Fetch orders if you have an API for it
+                const calculatedMetrics = getMetrics(customers, wantListEntries, orders);
 
-      {/* Metrics Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {Object.entries(mockMetrics).map(([key, value]) => (
-          <div key={key} className="card-section text-center">
-            <div className="text-3xl font-bold text-sage-600">{value}</div>
-            <div className="text-sm text-sage-500 capitalize">
-              {key.replace(/([A-Z])/g, ' $1').trim()}
+                setMetrics(calculatedMetrics);
+
+                // Assuming recent activity can be derived from wantListEntries or another source
+                const activity: ActivityItem[] = wantListEntries.map(entry => ({
+                    type: 'wantlist',
+                    customer: `${entry.customer_first_name} ${entry.customer_last_name}`,
+                    time: 'N/A', // Replace with actual time if available
+                    action: `New request for ${entry.initial}`
+                }));
+
+                setRecentActivity(activity);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    if (!metrics) {
+        return <div>Loading...</div>;
+    }
+
+    return (
+        <main className="p-6 max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-sage-700 mb-8">Nursery Dashboard</h1>
+            
+            {/* Quick Actions */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <Link href="/customers" className="btn-primary text-center">
+                    Customer Lookup
+                </Link>
+                <Link href="/wantlist/" className="btn-secondary text-center">
+                    Plant Want List
+                </Link>
             </div>
-          </div>
-        ))}
-      </div>
 
-      {/* Recent Activity */}
-      <div className="card-section">
-        <h2 className="text-xl font-semibold text-sage-700 mb-4">Recent Activity</h2>
-        <div className="divide-y divide-sage-200">
-          {recentActivity.map((activity, index) => (
-            <div key={index} className="py-3 flex items-center justify-between">
-              <div>
-                <span className="font-medium text-sage-600">{activity.customer}</span>
-                <p className="text-sm text-sage-500">{activity.action}</p>
-              </div>
-              <span className="text-xs text-sage-400">{activity.time}</span>
+            {/* Metrics Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                {Object.entries(metrics).map(([key, value]) => (
+                    <div key={key} className="card-section text-center">
+                        <div className="text-3xl font-bold text-sage-600">{value}</div>
+                        <div className="text-sm text-sage-500 capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </div>
+                    </div>
+                ))}
             </div>
-          ))}
-        </div>
-      </div>
-    </main>
-  );
+
+            {/* Recent Activity */}
+            <div className="card-section">
+                <h2 className="text-xl font-semibold text-sage-700 mb-4">Recent Activity</h2>
+                <div className="divide-y divide-sage-200">
+                    {recentActivity.map((activity, index) => (
+                        <div key={index} className="py-3 flex items-center justify-between">
+                            <div>
+                                <span className="font-medium text-sage-600">{activity.customer}</span>
+                                <p className="text-sm text-sage-500">{activity.action}</p>
+                            </div>
+                            <span className="text-xs text-sage-400">{activity.time}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </main>
+    );
 }

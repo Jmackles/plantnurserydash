@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f7f7f7; /* Soft pastel background */
+  --foreground: #333333; /* Darker text for better contrast */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a1a1a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Add to globals.css */
+@layer components {
+  .input-field {
+    @apply w-full p-2 mb-4 border-2 border-sage-300 rounded-lg 
+           focus:outline-none focus:border-sage-500 
+           bg-white/50 transition-colors;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-sage-500 text-white rounded-lg
+           hover:bg-sage-600 active:bg-sage-700
+           transition-colors shadow-md;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-lavender-400 text-white rounded-lg
+           hover:bg-lavender-500 active:bg-lavender-600
+           transition-colors shadow-md;
+  }
+
+  .card-section {
+    @apply p-4 mb-4 bg-white/80 rounded-xl shadow-md
+           border border-sage-200;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium mb-2 text-sage-700;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  }
+
+  .modal-content {
+    @apply bg-white p-6 rounded-lg shadow-lg w-2/3 relative;
+  }
+}

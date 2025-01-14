@@ -52,7 +52,7 @@ export default function Dashboard() {
                 <Link href="/customers" className="btn-primary text-center">
                     Customer Lookup
                 </Link>
-                <Link href="/wantlist/" className="btn-secondary text-center">
+                <Link href="/wantlistdashboard/" className="btn-secondary text-center">
                     Plant Want List
                 </Link>
             </div>

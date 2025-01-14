@@ -67,9 +67,9 @@ const WantListDashboard = () => {
     };
 
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">Want List Dashboard</h1>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <main className="p-6 max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-sage-700 mb-8">Want List Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 {wantListEntries.map((entry) => (
                     <WantListCard 
                         key={entry.id} 
@@ -88,96 +88,96 @@ const WantListDashboard = () => {
                     onClose={closeModal}
                 >
                     <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1">Initial:</label>
+                        <label className="form-label">Initial:</label>
                         <input
                             type="text"
                             value={editData?.initial || ''}
                             onChange={(e) => handleEditChange('initial', e.target.value)}
-                            className="w-full p-2 border rounded"
+                            className="input-field"
                         />
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium mb-1">Notes:</label>
-                            <textarea
-                                value={editData?.notes || ''}
-                                onChange={(e) => handleEditChange('notes', e.target.value)}
-                                className="w-full p-2 border rounded"
-                            ></textarea>
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium mb-1">Spoken To:</label>
-                            <input
-                                type="text"
-                                value={editData?.spoken_to || ''}
-                                onChange={(e) => handleEditChange('spoken_to', e.target.value)}
-                                className="w-full p-2 border rounded"
-                            />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium mb-1">Status:</label>
-                            <select
-                                value={editData?.is_closed ? 'Closed' : 'Open'}
-                                onChange={(e) => handleEditChange('is_closed', e.target.value === 'Closed')}
-                                className="w-full p-2 border rounded"
-                            >
-                                <option value="Open">Open</option>
-                                <option value="Closed">Closed</option>
-                            </select>
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium mb-1">Plants:</label>
-                            <ul className="list-disc pl-4">
-                                {editData?.plants?.map((plant, index) => (
-                                    <li key={index}>
-                                        <input
-                                            type="text"
-                                            placeholder="Plant Name"
-                                            value={plant.name}
-                                            onChange={(e) => handlePlantChange(index, 'name', e.target.value)}
-                                            className="w-full p-2 border rounded mb-2"
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="Size"
-                                            value={plant.size}
-                                            onChange={(e) => handlePlantChange(index, 'size', e.target.value)}
-                                            className="w-full p-2 border rounded mb-2"
-                                        />
-                                        <input
-                                            type="number"
-                                            placeholder="Quantity"
-                                            value={plant.quantity}
-                                            onChange={(e) => handlePlantChange(index, 'quantity', parseInt(e.target.value))}
-                                            className="w-full p-2 border rounded mb-2"
-                                        />
-                                    </li>
-                                ))}
-                            </ul>
-                            <button
-                                className="bg-blue-500 text-white px-4 py-2 rounded mt-2"
-                                onClick={handleAddPlant}
-                            >
-                                Add Plant
-                            </button>
-                        </div>
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Notes:</label>
+                        <textarea
+                            value={editData?.notes || ''}
+                            onChange={(e) => handleEditChange('notes', e.target.value)}
+                            className="input-field"
+                        ></textarea>
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Spoken To:</label>
+                        <input
+                            type="text"
+                            value={editData?.spoken_to || ''}
+                            onChange={(e) => handleEditChange('spoken_to', e.target.value)}
+                            className="input-field"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Status:</label>
+                        <select
+                            value={editData?.is_closed ? 'Closed' : 'Open'}
+                            onChange={(e) => handleEditChange('is_closed', e.target.value === 'Closed')}
+                            className="input-field"
+                        >
+                            <option value="Open">Open</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Plants:</label>
+                        <ul className="list-disc pl-4">
+                            {editData?.plants?.map((plant, index) => (
+                                <li key={index}>
+                                    <input
+                                        type="text"
+                                        placeholder="Plant Name"
+                                        value={plant.name}
+                                        onChange={(e) => handlePlantChange(index, 'name', e.target.value)}
+                                        className="input-field"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Size"
+                                        value={plant.size}
+                                        onChange={(e) => handlePlantChange(index, 'size', e.target.value)}
+                                        className="input-field"
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Quantity"
+                                        value={plant.quantity}
+                                        onChange={(e) => handlePlantChange(index, 'quantity', parseInt(e.target.value))}
+                                        className="input-field"
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                        <button
+                            className="btn-primary mt-2"
+                            onClick={handleAddPlant}
+                        >
+                            Add Plant
+                        </button>
+                    </div>
 
-                        <div className="flex justify-end space-x-2">
-                            <button
-                                className="bg-green-500 text-white px-4 py-2 rounded"
-                                onClick={saveChanges}
-                            >
-                                Save
-                            </button>
-                            <button
-                                className="bg-gray-500 text-white px-4 py-2 rounded"
-                                onClick={closeModal}
-                            >
-                                Cancel
-                            </button>
-                        </div>
+                    <div className="flex justify-end space-x-2">
+                        <button
+                            className="btn-primary"
+                            onClick={saveChanges}
+                        >
+                            Save
+                        </button>
+                        <button
+                            className="btn-secondary"
+                            onClick={closeModal}
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </Modal>
             )}
-        </div>
+        </main>
     );
 };
 

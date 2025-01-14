@@ -20,7 +20,6 @@ body {
   font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Add to globals.css */
 @layer components {
   .input-field {
     @apply w-full p-2 mb-4 border-2 border-sage-300 rounded-lg 

@@ -1,8 +1,8 @@
 import React from 'react';
 
 const Modal = ({ title, children, onClose }) => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-8 rounded-lg shadow-lg w-2/3 relative">
+    <div className="modal-overlay">
+        <div className="modal-content">
             <h2 className="text-xl font-bold mb-4">{title}</h2>
             {children}
             <button

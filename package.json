@@ -12,6 +12,7 @@
     "next": "15.1.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-tooltip": "^5.28.0",
     "react-window": "^1.8.11",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",

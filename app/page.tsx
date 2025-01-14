@@ -4,6 +4,7 @@ import { DashboardMetrics, ActivityItem, Customer, WantListEntry } from './lib/t
 import { fetchCustomers, fetchWantListEntries } from './lib/api';
 import { getMetrics } from './utils/Metrics';
 import Link from 'next/link';
+import { Tooltip } from 'react-tooltip';
 
 export default function Dashboard() {
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -46,7 +47,7 @@ export default function Dashboard() {
     return (
         <main className="p-6 max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-sage-700 mb-8">Nursery Dashboard</h1>
-            
+
             {/* Quick Actions */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <Link href="/customers" className="btn-primary text-center">
@@ -60,11 +61,14 @@ export default function Dashboard() {
             {/* Metrics Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {Object.entries(metrics).map(([key, value]) => (
-                    <div key={key} className="card-section text-center">
+                    <div key={key} className="card-section text-center" data-tooltip-id={key}>
                         <div className="text-3xl font-bold text-sage-600">{value}</div>
                         <div className="text-sm text-sage-500 capitalize">
                             {key.replace(/([A-Z])/g, ' $1').trim()}
                         </div>
+                        <Tooltip id={key} place="top" effect="solid">
+                            {`This metric represents ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}.`}
+                        </Tooltip>
                     </div>
                 ))}
             </div>

@@ -10,10 +10,17 @@ const WantListDashboard = () => {
     const [selectedEntry, setSelectedEntry] = useState<WantListEntry | null>(null);
     const [editData, setEditData] = useState<WantListEntry | null>(null);
 
+    const fetchEntries = async () => {
+        try {
+            const entries = await fetchWantListEntries();
+            setWantListEntries(entries);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
     useEffect(() => {
-        fetchWantListEntries()
-            .then(setWantListEntries)
-            .catch((error) => console.error('Error:', error));
+        fetchEntries();
     }, []);
 
     const closeModal = () => {
@@ -51,10 +58,7 @@ const WantListDashboard = () => {
             });
             if (res.ok) {
                 alert('Changes saved successfully!');
-                const updatedEntries = wantListEntries.map((entry) =>
-                    entry.id === editData?.id ? { ...entry, ...editData } : entry
-                );
-                setWantListEntries(updatedEntries);
+                await fetchEntries(); // Re-fetch data after saving changes
                 closeModal();
             } else {
                 const errorData = await res.json();

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
 
 export async function GET() {
     try {
@@ -40,31 +40,6 @@ export async function POST(request: NextRequest) {
         console.error('Error adding customer:', error);
         return NextResponse.json(
             { error: 'Failed to add customer' },
-            { status: 500 }
-        );
-    }
-}
-
-export async function PUT(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { id, updatedFields } = body;
-        
-        const db = await open({
-            filename: './database.sqlite',
-            driver: sqlite3.Database
-        });
-
-        const fields = Object.keys(updatedFields).map(key => `${key} = ?`).join(', ');
-        const values = [...Object.values(updatedFields), id];
-        
-        await db.run(`UPDATE customers SET ${fields} WHERE id = ?`, values);
-        
-        return NextResponse.json({ message: 'Customer updated successfully' });
-    } catch (error) {
-        console.error('Error updating customer:', error);
-        return NextResponse.json(
-            { error: 'Failed to update customer' },
             { status: 500 }
         );
     }

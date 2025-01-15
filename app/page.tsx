@@ -46,18 +46,7 @@ export default function Dashboard() {
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-sage-700 mb-8">Nursery Dashboard</h1>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <Link href="/customers" className="btn-primary text-center">
-                    Customer Lookup
-                </Link>
-                <Link href="/wantlistdashboard/" className="btn-secondary text-center">
-                    Plant Want List
-                </Link>
-            </div>
-
+          
             {/* Metrics Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {Object.entries(metrics).map(([key, value]) => (

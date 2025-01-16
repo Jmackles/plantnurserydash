@@ -60,15 +60,27 @@ def concatenate_files():
     master_filename = 'master.txt'
     files_to_concatenate = [
         'app/page.tsx',
+        'app/customers/page.tsx',
+        'app/api/customers/[id].ts',
+        'app/api/customers/route.ts',
+        'app/api/want-list/route.ts',        
         'app/wantlistdashboard/page.tsx',
         'app/components/cards/CustomerCard.js',
         'app/components/cards/WantListCard.js',
+        'app/components/cards/Cards.js',
         'app/components/forms/InputForm.tsx',
+        'app/components/shared/CustomerInteractionModal.tsx',
         'app/components/shared/Modal.js',
+        'app/components/shared/Navbar.js',
+        'app/components/shared/SearchFilterPanel.tsx',
         'app/lib/types.ts',
+        'app/lib/api.ts',
         'app/components/cards/Cards.js',
         'app/layout.tsx',
-        'app/globals.css'
+        'app/globals.css',
+        'app/scripts/setupDatabase.js',
+        'app/utils/Metrics.ts'
+        
     ]
 
     # Create a backup of the existing master file

@@ -14,14 +14,6 @@
   }
 }
 
-@media (max-width: 768px) {
-  .modal-content {
-      width: 95%;
-      max-width: none;
-  }
-}
-
-
 body {
   color: var(--foreground);
   background: var(--background);
@@ -72,66 +64,16 @@ body {
   .modal-content {
     background: white;
     padding: 20px;
-    border-radius: 5px;
-    position: static;
+    border-radius: 8px;
+    position: relative;
     max-width: 90%;
-    max-height: auto;
-    overflow: auto;
-    overflow-y: visible;
-    overflow-x: auto;
-    
+    max-height: 90%;
+    overflow: scroll;
   }
 
   .modal-body {
-    max-height: 70vh;
-    overflow-y: visible;
-    padding-right: 10px; /* For scrollbar spacing */
-    @apply space-y-4; /* Consistent vertical spacing */
-  }
-
-  .modal-header {
-    @apply flex justify-between items-center mb-4;
-  }
-
-  .modal-title {
-    @apply text-xl font-bold text-sage-700;
-  }
-
-  .modal-close {
-    @apply p-2 text-gray-600 hover:text-sage-700 
-           transition-colors cursor-pointer;
-  }
-
-  .modal-footer {
-    @apply flex justify-end space-x-2 mt-6 pt-4 
-           border-t border-sage-200;
-  }
-
-  .form-section {
-    @apply mb-6;
-  }
-
-  .form-row {
-    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
-  }
-
-  .form-group {
-    @apply mb-4;
-  }
-
-  .input-group {
-    @apply flex flex-col space-y-1;
-  }
-
-  .error-text {
-    @apply text-sm text-red-500 mt-1;
-  }
-
-  .form-actions {
-    @apply flex justify-end space-x-2;
-  }
-
-  .form-hint {
-    @apply text-sm text-sage-600 mt-1;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+    padding-right: 10px; /* Optional: to avoid content being hidden behind scrollbar */
   }
 }

@@ -10,8 +10,9 @@ export async function GET() {
         });
         
         const customers = await db.all('SELECT * FROM customers');
+        await db.close();
         return NextResponse.json(customers);
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error fetching customers:', error);
         return NextResponse.json(
             { error: 'Failed to fetch customers' },
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
             'INSERT INTO customers (first_name, last_name, phone, email) VALUES (?, ?, ?, ?)',
             [first_name, last_name, phone, email]
         );
-        
+        await db.close();
         return NextResponse.json({ id: result.lastID }, { status: 201 });
     } catch (error) {
         console.error('Error adding customer:', error);
@@ -44,3 +45,31 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+// export async function PUT(request: NextRequest) {
+//     try {
+//         const { id, first_name, last_name, phone, email, is_active, notes } = await request.json();
+        
+//         const db = await open({
+//             filename: './database.sqlite',
+//             driver: sqlite3.Database
+//         });
+
+//         const result = await db.run(
+//             'UPDATE customers SET first_name = ?, last_name = ?, phone = ?, email = ?, is_active = ?, notes = ? WHERE id = ?',
+//             [first_name, last_name, phone, email, is_active, notes, id]
+//         );
+
+//         if (result.changes === 0) {
+//             throw new Error('No rows updated');
+//         }
+//         await db.close();
+//         return NextResponse.json({ message: 'Customer updated successfully' });
+//     } catch (error: unknown) {
+//         console.error('Error updating customer:', error);
+//         return NextResponse.json(
+//             { error: 'Failed to update customer', details: error instanceof Error ? error.message : String(error) },
+//             { status: 500 }
+//         );
+//     }
+// }

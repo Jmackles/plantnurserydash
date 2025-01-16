@@ -13,6 +13,8 @@ import { open } from 'sqlite';
             last_name TEXT NOT NULL,
             phone TEXT,
             email TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            notes TEXT,
             UNIQUE (phone, email)
         );
     `);

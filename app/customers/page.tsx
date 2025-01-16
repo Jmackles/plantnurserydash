@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import SearchFilterPanel from '../components/shared/SearchFilterPanel';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
-import { fetchCustomers } from '../lib/api';
+import { fetchCustomers, addCustomer, updateCustomer } from '../lib/api';
 import { Customer } from '../lib/types';
 
 const Dashboard = () => {
@@ -10,6 +10,7 @@ const Dashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [isAdding, setIsAdding] = useState(false);
 
     useEffect(() => {
         fetchCustomers()
@@ -21,38 +22,73 @@ const Dashboard = () => {
     }, []);
 
     const filteredCustomers = customers.filter((customer) => {
-        const matchesSearchQuery = 
-            customer.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            customer.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            customer.phone.includes(searchQuery) ||
-            customer.email.toLowerCase().includes(searchQuery.toLowerCase());
+        try {
+            if (!customer || !customer.first_name || !customer.last_name || !customer.phone || !customer.email) {
+                console.warn('Invalid customer data:', customer);
+                return false;
+            }
 
-        const matchesFilter = filter === '' || (filter === 'active' && customer.is_active) || (filter === 'inactive' && !customer.is_active);
+            const matchesSearchQuery = 
+                customer.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customer.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customer.phone.includes(searchQuery) ||
+                customer.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-        return matchesSearchQuery && matchesFilter;
+            const matchesFilter = filter === '' || (filter === 'active' && customer.is_active) || (filter === 'inactive' && !customer.is_active);
+
+            return matchesSearchQuery && matchesFilter;
+        } catch (error) {
+            console.error('Error filtering customers:', error);
+            return false;
+        }
     });
 
-    const handleSave = async (updatedCustomer: Customer) => {
+    const handleAddCustomer = async (newCustomer: Omit<Customer, 'id'>, wantList?: { initial: string, notes: string, plants: Plant[] }) => {
         try {
-            console.log('Sending updated customer to server:', updatedCustomer);
-            const res = await fetch(`/api/customers/${updatedCustomer.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(updatedCustomer),
-            });
-            if (res.ok) {
-                const updatedCustomerFromServer = await res.json();
-                console.log('Customer saved successfully:', updatedCustomerFromServer);
-                setCustomers(customers.map(customer => customer.id === updatedCustomer.id ? updatedCustomerFromServer : customer));
-                setSelectedCustomer(null);
-            } else {
-                const errorText = await res.text();
-                console.error('Failed to save customer:', res.status, errorText);
+            const addedCustomer = await addCustomer(newCustomer);
+            
+            if (wantList) {
+                // Create want list for the new customer
+                await fetch('/api/want-list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_id: addedCustomer.id,
+                        ...wantList
+                    }),
+                });
             }
+            
+            setCustomers((prevCustomers) => [...prevCustomers, addedCustomer]);
+            setIsAdding(false);
         } catch (error) {
-            console.error('Error saving customer:', error);
+            console.error('Error adding customer:', error);
+        }
+    };
+
+    const handleSaveCustomer = async (customer: Customer, wantList?: { initial: string, notes: string, plants: Plant[] }) => {
+        try {
+            const updatedCustomer = await updateCustomer(customer);
+            
+            if (wantList) {
+                // Create want list for the existing customer
+                await fetch('/api/want-list', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_id: customer.id,
+                        ...wantList
+                    }),
+                });
+            }
+            
+            setCustomers((prevCustomers) =>
+                prevCustomers.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c))
+            );
+            setSelectedCustomer(null);
+        } catch (error) {
+            console.error('Error updating customer:', error);
+            // Optionally add user feedback here
         }
     };
 
@@ -67,6 +103,15 @@ const Dashboard = () => {
                         filter={filter}
                         setFilter={setFilter}
                     />
+                    <button
+                        onClick={() => {
+                            console.log('Add New Customer button clicked');
+                            setIsAdding(true);
+                        }}
+                        className="btn-primary mt-4"
+                    >
+                        Add New Customer
+                    </button>
                 </div>
                 <div className="md:col-span-3">
                     <div className="overflow-x-auto">
@@ -99,7 +144,17 @@ const Dashboard = () => {
                 <CustomerInteractionModal
                     customer={selectedCustomer}
                     onClose={() => setSelectedCustomer(null)}
-                    onSave={handleSave}
+                    onSave={handleSaveCustomer}
+                />
+            )}
+            {isAdding && (
+                <CustomerInteractionModal
+                    customer={null}
+                    onClose={() => {
+                        console.log('Closing Add New Customer modal');
+                        setIsAdding(false);
+                    }}
+                    onSave={handleAddCustomer}
                 />
             )}
         </main>

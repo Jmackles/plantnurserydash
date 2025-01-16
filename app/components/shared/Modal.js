@@ -4,7 +4,9 @@ const Modal = ({ title, children, onClose }) => (
     <div className="modal-overlay">
         <div className="modal-content">
             <h2 className="text-xl font-bold mb-4">{title}</h2>
-            {children}
+            <div className="modal-body">
+                {children}
+            </div>
             <button
                 className="absolute top-2 right-2 text-gray-600"
                 onClick={onClose}

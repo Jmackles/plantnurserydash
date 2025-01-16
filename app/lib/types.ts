@@ -5,6 +5,7 @@ export interface Customer {
     phone: string;
     email: string;
     is_active: boolean;
+    notes: string;
 }
 
 export interface Plant {

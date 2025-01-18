@@ -75,3 +75,41 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export async function PUT(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { id, updatedFields } = body;
+
+        const db = await open({
+            filename: './database.sqlite',
+            driver: sqlite3.Database
+        });
+
+        const { initial, notes, spoken_to, is_closed, plants } = updatedFields;
+
+        await db.run(
+            'UPDATE want_list SET initial = ?, notes = ?, spoken_to = ?, is_closed = ? WHERE id = ?',
+            [initial, notes, spoken_to, is_closed, id]
+        );
+
+        await db.run('DELETE FROM plants WHERE want_list_id = ?', [id]);
+
+        if (plants && plants.length > 0) {
+            for (const plant of plants) {
+                await db.run(
+                    'INSERT INTO plants (want_list_id, name, size, quantity) VALUES (?, ?, ?, ?)',
+                    [id, plant.name, plant.size, plant.quantity]
+                );
+            }
+        }
+
+        return NextResponse.json({ message: 'Entry updated successfully' });
+    } catch (error) {
+        console.error('Error updating want list entry:', error);
+        return NextResponse.json(
+            { error: 'Failed to update want list entry' },
+            { status: 500 }
+        );
+    }
+}

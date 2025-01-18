@@ -4,6 +4,7 @@ import WantListCard from '../components/cards/WantListCard';
 import Modal from '../components/shared/Modal';
 import { fetchWantListEntries } from '../lib/api';
 import { WantListEntry, Plant } from '../lib/types';
+import Link from 'next/link';
 
 const WantListDashboard = () => {
     const [wantListEntries, setWantListEntries] = useState<WantListEntry[]>([]);
@@ -75,14 +76,19 @@ const WantListDashboard = () => {
             <h1 className="text-3xl font-bold text-sage-700 mb-8">Want List Dashboard</h1>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 {wantListEntries.map((entry) => (
-                    <WantListCard 
-                        key={entry.id} 
-                        entry={entry} 
-                        onClick={() => {
-                            setSelectedEntry(entry);
-                            setEditData(entry);
-                        }} 
-                    />
+                    <div key={entry.id}>
+                        <WantListCard 
+                            key={entry.id} 
+                            entry={entry} 
+                            onClick={() => {
+                                setSelectedEntry(entry);
+                                setEditData(entry);
+                            }} 
+                        />
+                        <Link href={`/customers/${entry.customer_id}`} className="text-blue-500 underline">
+                            View Customer
+                        </Link>
+                    </div>
                 ))}
             </div>
 

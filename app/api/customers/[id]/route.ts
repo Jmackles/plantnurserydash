@@ -29,3 +29,24 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 });
     }
 }
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+    try {
+        const db = await open({
+            filename: './database.sqlite',
+            driver: sqlite3.Database
+        });
+
+        const customer = await db.get('SELECT * FROM customers WHERE id = ?', params.id);
+        await db.close();
+
+        if (!customer) {
+            return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(customer);
+    } catch (error) {
+        console.error('Error fetching customer:', error);
+        return NextResponse.json({ error: 'Failed to fetch customer' }, { status: 500 });
+    }
+}

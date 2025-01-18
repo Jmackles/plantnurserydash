@@ -50,3 +50,12 @@ export const updateCustomer = async (customer: Customer): Promise<Customer> => {
     const updatedCustomer = await response.json();
     return updatedCustomer;
 };
+
+export const fetchCustomerById = async (id: number): Promise<Customer> => {
+    const res = await fetch(`/api/customers/${id}`);
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to fetch customer');
+    }
+    return res.json();
+};

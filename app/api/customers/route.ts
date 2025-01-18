@@ -38,6 +38,12 @@ export async function POST(request: NextRequest) {
         await db.close();
         return NextResponse.json({ id: result.lastID }, { status: 201 });
     } catch (error) {
+        if (error.code === 'SQLITE_CONSTRAINT') {
+            return NextResponse.json(
+                { error: 'A customer with this phone or email already exists' },
+                { status: 409 }
+            );
+        }
         console.error('Error adding customer:', error);
         return NextResponse.json(
             { error: 'Failed to add customer' },

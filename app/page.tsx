@@ -28,7 +28,8 @@ export default function Dashboard() {
                     type: 'wantlist',
                     customer: `${entry.customer_first_name} ${entry.customer_last_name}`,
                     time: 'N/A', // Replace with actual time if available
-                    action: `New request for ${entry.initial}`
+                    action: `New request for ${entry.initial}`,
+                    customer_id: entry.customer_id // Add customer_id to the activity item
                 }));
 
                 setRecentActivity(activity);
@@ -71,6 +72,9 @@ export default function Dashboard() {
                             <div>
                                 <span className="font-medium text-sage-600">{activity.customer}</span>
                                 <p className="text-sm text-sage-500">{activity.action}</p>
+                                <Link href={`/customers/${activity.customer_id}`} className="text-blue-500 underline">
+                                    View Customer
+                                </Link>
                             </div>
                             <span className="text-xs text-sage-400">{activity.time}</span>
                         </div>

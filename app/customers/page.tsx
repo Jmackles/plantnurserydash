@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import SearchFilterPanel from '../components/shared/SearchFilterPanel';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
 import { fetchCustomers, addCustomer, updateCustomer } from '../lib/api';
@@ -62,7 +63,12 @@ const Dashboard = () => {
             setCustomers((prevCustomers) => [...prevCustomers, addedCustomer]);
             setIsAdding(false);
         } catch (error) {
-            console.error('Error adding customer:', error);
+            if (error.message.includes('A customer with this phone or email already exists')) {
+                alert('A customer with this phone or email already exists.');
+            } else {
+                console.error('Error adding customer:', error);
+                alert('Failed to add customer.');
+            }
         }
     };
 
@@ -123,16 +129,29 @@ const Dashboard = () => {
                                     <th className="py-2 px-4 border-b">Phone</th>
                                     <th className="py-2 px-4 border-b">Email</th>
                                     <th className="py-2 px-4 border-b">Status</th>
+                                    <th className="py-2 px-4 border-b">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredCustomers.map((customer) => (
-                                    <tr key={customer.id} onClick={() => setSelectedCustomer(customer)} className="cursor-pointer">
-                                        <td className="py-2 px-4 border-b">{customer.first_name}</td>
-                                        <td className="py-2 px-4 border-b">{customer.last_name}</td>
-                                        <td className="py-2 px-4 border-b">{customer.phone}</td>
-                                        <td className="py-2 px-4 border-b">{customer.email}</td>
+                                    <tr key={customer.id} className="cursor-pointer">
+                                        <td className="py-2 px-4 border-b">
+                                            <Link href={`/customers/${customer.id}`} className="text-blue-500 underline">
+                                                {customer.first_name || 'N/A'}
+                                            </Link>
+                                        </td>
+                                        <td className="py-2 px-4 border-b">{customer.last_name || 'N/A'}</td>
+                                        <td className="py-2 px-4 border-b">{customer.phone || 'N/A'}</td>
+                                        <td className="py-2 px-4 border-b">{customer.email || 'N/A'}</td>
                                         <td className="py-2 px-4 border-b">{customer.is_active ? 'Active' : 'Inactive'}</td>
+                                        <td className="py-2 px-4 border-b">
+                                            <button
+                                                onClick={() => setSelectedCustomer(customer)}
+                                                className="text-blue-500 underline"
+                                            >
+                                                Edit
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -1,19 +1,21 @@
 import { Customer, WantListEntry } from "./types";
 
+const prependAppDirectory = (path: string) => `/app${path}`;
+
 export const fetchCustomers = async (): Promise<Customer[]> => {
     const res = await fetch('/api/customers');
     if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to fetch customers');
+        const error = await res.text();
+        throw new Error(error || 'Failed to fetch customers');
     }
     return res.json();
 };
 
 export const fetchWantListEntries = async (): Promise<WantListEntry[]> => {
-    const res = await fetch('/api/want-list');
+    const res = await fetch('/api/want-list-entries');
     if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to fetch want list entries');
+        const error = await res.text();
+        throw new Error(error || 'Failed to fetch want list entries');
     }
     return res.json();
 };
@@ -27,8 +29,8 @@ export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Custo
         body: JSON.stringify(customer),
     });
     if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to add customer');
+        const error = await res.text();
+        throw new Error(error || 'Failed to add customer');
     }
     return res.json();
 };
@@ -43,8 +45,8 @@ export const updateCustomer = async (customer: Customer): Promise<Customer> => {
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update customer');
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to update customer');
     }
 
     const updatedCustomer = await response.json();
@@ -54,13 +56,13 @@ export const updateCustomer = async (customer: Customer): Promise<Customer> => {
 export const fetchCustomerById = async (id: number): Promise<Customer> => {
     const res = await fetch(`/api/customers/${id}`);
     if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to fetch customer');
+        const error = await res.text();
+        throw new Error(error || 'Failed to fetch customer');
     }
     return res.json();
 };
 
-export const addWantListEntry = async (entry: Omit<WantListEntry, 'id' | 'customer_first_name' | 'customer_last_name'>): Promise<WantListEntry> => {
+export const addWantListEntry = async (entry: Omit<WantListEntry, 'id' | 'customer_first_name' | 'customer_last_name' | 'created_at'>): Promise<WantListEntry> => {
     const res = await fetch('/api/want-list', {
         method: 'POST',
         headers: {
@@ -69,8 +71,18 @@ export const addWantListEntry = async (entry: Omit<WantListEntry, 'id' | 'custom
         body: JSON.stringify(entry),
     });
     if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to add want list entry');
+        const error = await res.text();
+        throw new Error(error || 'Failed to add want list entry');
     }
     return res.json();
+};
+
+// Example usage for fetching images
+const fetchImage = async (imagePath: string) => {
+    const fullPath = prependAppDirectory(imagePath);
+    const res = await fetch(fullPath);
+    if (!res.ok) {
+        throw new Error(`Failed to fetch image at ${fullPath}`);
+    }
+    return res.blob();
 };

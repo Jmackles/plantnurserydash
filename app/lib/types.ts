@@ -24,6 +24,7 @@ export interface WantListEntry {
     plants: Plant[];
     customer_first_name: string;
     customer_last_name: string;
+    created_at: string;
 }
 
 export interface FormData {
@@ -58,4 +59,31 @@ export interface ActivityItem {
     customer: string;
     time: string;
     action: string;
+}
+
+export interface BenchTag {
+    ID: string;
+    TagName: string;
+    Botanical: string;
+    Department: string;
+    NoWarranty: string;
+    DeerResistance: string;
+    Native: string;
+    Sun: string;
+    PartSun: string;
+    Shade: string;
+    GrowthRate: string;
+    MatureSize: string;
+    Winterizing: string;
+    SpecialCareAttributes: string;
+    Image: string;
+    Price: string;
+    Size: string;
+    PotSize: string;
+    PotSizeUnit: string;
+    PotDepth: string;
+    PotShape: string;
+    PotType: string;
+    PotCustomText: string;
+    Print: string;
 }

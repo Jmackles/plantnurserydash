@@ -9,28 +9,28 @@ interface SearchFilterPanelProps {
 
 const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({ searchQuery, setSearchQuery, filter, setFilter }) => {
     return (
-        <div className="p-4 bg-white shadow-md rounded-lg mb-4">
-            <h2 className="text-xl font-bold mb-4">Search and Filter</h2>
-            <div className="mb-4">
+        <div className="mb-4">
+            <div className="mb-2">
                 <label className="form-label">Search:</label>
                 <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="input-field"
-                    placeholder="Search by name, phone, or email"
                 />
             </div>
             <div>
-                <label className="form-label">Filter:</label>
+                <label className="form-label">Filter by Department:</label>
                 <select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                     className="input-field"
                 >
                     <option value="">All</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="Sun">Sun</option>
+                    <option value="Part Sun">Part Sun</option>
+                    <option value="Shade">Shade</option>
+                    {/* Add more filter options as needed */}
                 </select>
             </div>
         </div>

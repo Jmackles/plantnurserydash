@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import WantListCard from '../components/cards/WantListCard';
 import Modal from '../components/shared/Modal';
+import BulkActionsBar from '../components/shared/BulkActionsBar';
 import { fetchWantListEntries, fetchCustomers, addWantListEntry, addCustomer } from '../lib/api';
 import { WantListEntry, Plant, Customer } from '../lib/types';
 import Link from 'next/link';
@@ -25,6 +26,8 @@ const WantListDashboard = () => {
         phone: '',
         email: '',
     });
+    const [selectedEntries, setSelectedEntries] = useState<number[]>([]);
+    const [bulkCloseData, setBulkCloseData] = useState({ initial: '', notes: '' });
 
     const fetchEntries = async () => {
         try {
@@ -84,16 +87,15 @@ const WantListDashboard = () => {
                 body: JSON.stringify({ id: editData?.id, updatedFields: editData }),
             });
             if (res.ok) {
-                alert('Changes saved successfully!');
+                console.log('Changes saved successfully!');
                 await fetchEntries(); // Re-fetch data after saving changes
                 closeModal();
             } else {
                 const errorData = await res.json();
-                alert(`Failed to save changes: ${errorData.error}`);
+                console.error(`Failed to save changes: ${errorData.error}`);
             }
         } catch (error) {
             console.error('Error saving changes:', error);
-            alert('An unexpected error occurred while saving changes.');
         }
     };
 
@@ -129,14 +131,73 @@ const WantListDashboard = () => {
                 ...newEntryData,
                 customer_id: parseInt(customerId),
             });
-            alert('New want list entry added successfully!');
+            console.log('New want list entry added successfully!');
             await fetchEntries(); // Re-fetch data after adding new entry
             closeModal();
         } catch (error) {
             console.error('Error adding new entry:', error);
-            alert('An unexpected error occurred while adding new entry.');
         }
     };
+
+    const handleMarkAsClosed = async (entryId: number, initial: string, notes: string) => {
+        try {
+            console.log(`Marking entry ${entryId} as closed with initial: ${initial} and notes: ${notes}`);
+            const res = await fetch(`/api/want-list/${entryId}/close`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ initial, notes }),
+            });
+            if (res.ok) {
+                setWantListEntries(prevEntries =>
+                    prevEntries.map(entry =>
+                        entry.id === entryId ? { ...entry, is_closed: true, closed_by: initial } : entry
+                    )
+                );
+                console.log('Entry marked as closed successfully!');
+            } else {
+                const errorData = await res.json();
+                console.error(`Failed to mark as closed: ${errorData.error}`);
+            }
+        } catch (error) {
+            console.error('Error marking as closed:', error);
+        }
+    };
+
+    const handleBulkClose = async () => {
+        try {
+            console.log(`Bulk closing entries: ${selectedEntries} with initial: ${bulkCloseData.initial} and notes: ${bulkCloseData.notes}`);
+            await Promise.all(
+                selectedEntries.map(entryId =>
+                    fetch(`/api/want-list/${entryId}/close`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ initial: bulkCloseData.initial, notes: bulkCloseData.notes }),
+                    })
+                )
+            );
+            setWantListEntries(prevEntries =>
+                prevEntries.map(entry =>
+                    selectedEntries.includes(entry.id) ? { ...entry, is_closed: true, closed_by: bulkCloseData.initial } : entry
+                )
+            );
+            console.log('Selected entries marked as closed successfully!');
+            setSelectedEntries([]);
+        } catch (error) {
+            console.error('Error marking as closed:', error);
+        }
+    };
+
+    const toggleSelectEntry = (entryId: number) => {
+        setSelectedEntries(prev =>
+            prev.includes(entryId) ? prev.filter(id => id !== entryId) : [...prev, entryId]
+        );
+    };
+
+    const sortedEntries = [...wantListEntries].sort((a, b) => a.is_closed === b.is_closed ? 0 : a.is_closed ? 1 : -1);
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
@@ -149,9 +210,17 @@ const WantListDashboard = () => {
                     Add New Want List Entry
                 </button>
             </div>
+            {selectedEntries.length > 0 && (
+                <BulkActionsBar
+                    onClose={() => setSelectedEntries([])}
+                    onBulkClose={handleBulkClose}
+                    bulkCloseData={bulkCloseData}
+                    setBulkCloseData={setBulkCloseData}
+                />
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                {wantListEntries.map((entry) => (
-                    <div key={entry.id}>
+                {sortedEntries.map((entry) => (
+                    <div key={entry.id} className={entry.is_closed ? 'opacity-50' : ''}>
                         <WantListCard 
                             key={entry.id} 
                             entry={entry} 
@@ -163,6 +232,12 @@ const WantListDashboard = () => {
                         <Link href={`/customers/${entry.customer_id}`} className="text-blue-500 underline">
                             View Customer
                         </Link>
+                        <input
+                            type="checkbox"
+                            checked={selectedEntries.includes(entry.id)}
+                            onChange={() => toggleSelectEntry(entry.id)}
+                            className="ml-2"
+                        />
                     </div>
                 ))}
             </div>
@@ -209,6 +284,18 @@ const WantListDashboard = () => {
                             <option value="Closed">Closed</option>
                         </select>
                     </div>
+                    {editData?.is_closed && (
+                        <div className="mb-4">
+                            <label className="form-label">Closed by:</label>
+                            <input
+                                type="text"
+                                value={editData?.closed_by || ''}
+                                onChange={(e) => handleEditChange('closed_by', e.target.value)}
+                                className="input-field"
+                                required
+                            />
+                        </div>
+                    )}
                     <div className="mb-4">
                         <label className="form-label">Plants:</label>
                         <ul className="list-disc pl-4">

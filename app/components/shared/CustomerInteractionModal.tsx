@@ -17,6 +17,8 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
         notes: '',
         plants: [] as Plant[]
     });
+    const [closeInitial, setCloseInitial] = useState('');
+    const [closeNotes, setCloseNotes] = useState('');
 
     useEffect(() => {
         console.log('CustomerInteractionModal mounted with customer:', customer);
@@ -75,6 +77,36 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
                 editedCustomer, 
                 includeWantList ? wantListData : undefined
             );
+        }
+    };
+
+    const handleCloseWantListItem = async (id: number) => {
+        if (!closeInitial) {
+            alert('Please provide your initials to close this item.');
+            return;
+        }
+        try {
+            const res = await fetch(`/api/want-list/${id}/close`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ initial: closeInitial, notes: closeNotes }),
+            });
+            if (res.ok) {
+                setWantListEntries(prevEntries =>
+                    prevEntries.map(entry =>
+                        entry.id === id ? { ...entry, is_closed: true } : entry
+                    )
+                );
+                alert('Entry marked as closed successfully!');
+            } else {
+                const errorData = await res.json();
+                alert(`Failed to mark as closed: ${errorData.error}`);
+            }
+        } catch (error) {
+            console.error('Error marking as closed:', error);
+            alert('An unexpected error occurred while marking as closed.');
         }
     };
 
@@ -223,6 +255,30 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
                                 <div className="font-medium">{entry.initial}</div>
                                 <div className="text-sm">{entry.notes}</div>
                                 <div className="text-sm">{entry.is_closed ? 'Closed' : 'Open'}</div>
+                                {!entry.is_closed && (
+                                    <div className="mt-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Initial"
+                                            value={closeInitial}
+                                            onChange={(e) => setCloseInitial(e.target.value)}
+                                            className="input-field mb-2"
+                                        />
+                                        <textarea
+                                            placeholder="Notes"
+                                            value={closeNotes}
+                                            onChange={(e) => setCloseNotes(e.target.value)}
+                                            className="input-field mb-2"
+                                        ></textarea>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleCloseWantListItem(entry.id)}
+                                            className="btn-secondary"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                )}
                             </li>
                         ))}
                     </ul>

@@ -42,3 +42,10 @@ next-env.d.ts
 bun.lockb
 database.sqlite
 master.txt
+converted_database.sqlite
+schema.txt
+app/scripts/getSchema.ts
+assets
+imageNames.txt
+output_Canyon_Creek_Abelia.bmp
+plantNames.txt

@@ -1,6 +1,5 @@
-// scripts/setupDatabase.js
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+const sqlite3 = require('sqlite3');
+const { open } = require('sqlite');
 
 (async () => {
     const db = await open({ filename: './database.sqlite', driver: sqlite3.Database });
@@ -19,31 +18,20 @@ import { open } from 'sqlite';
         );
     `);
 
-    // Create the want_list table if it doesn't exist
+    // Create the want_list_entries table if it doesn't exist
     await db.exec(`
-        CREATE TABLE IF NOT EXISTS want_list (
+        CREATE TABLE IF NOT EXISTS want_list_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             customer_id INTEGER NOT NULL,
-            initial TEXT,
+            initial TEXT NOT NULL,
             notes TEXT,
-            is_closed BOOLEAN DEFAULT FALSE,
-            spoken_to TEXT, -- Added the 'spoken_to' column
+            is_closed BOOLEAN DEFAULT 0,
+            spoken_to TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP, -- Add this line
             FOREIGN KEY (customer_id) REFERENCES customers(id)
         );
     `);
 
-    // Create the plants table if it doesn't exist
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS plants (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            want_list_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            size TEXT,
-            quantity INTEGER DEFAULT 1,
-            FOREIGN KEY (want_list_id) REFERENCES want_list(id)
-        );
-    `);
-
-    console.log('Database setup complete!');
-    process.exit(0);
+    console.log('Database setup complete.');
+    await db.close();
 })();

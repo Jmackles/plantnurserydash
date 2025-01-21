@@ -8,10 +8,21 @@ export interface Customer {
     notes: string;
 }
 
-export interface Plant {
+export interface WantListPlant {
     name: string;
     size: string;
     quantity: number;
+}
+
+export interface Plant extends WantListPlant {
+    botanical: string;
+    price: string;
+    matureSize: string;
+    growthRate: string;
+    deerResistance: string;
+    sun: number;
+    shade: number;
+    native: number;
 }
 
 export interface WantListEntry {
@@ -21,7 +32,7 @@ export interface WantListEntry {
     notes?: string;
     is_closed: boolean;
     spoken_to?: string;
-    plants: Plant[];
+    plants: Plant[]; // Change this line to use Plant instead of WantListPlant
     customer_first_name: string;
     customer_last_name: string;
     created_at: string;
@@ -34,7 +45,7 @@ export interface FormData {
     email: string;
     initial: string;
     notes?: string;
-    plants: Plant[];
+    plants: WantListPlant[];
     spokenTo?: string;
     customer_id?: number;
 }

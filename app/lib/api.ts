@@ -1,23 +1,31 @@
 import { Customer, WantListEntry } from "./types";
 
-const prependAppDirectory = (path: string) => `/app${path}`;
-
 export const fetchCustomers = async (): Promise<Customer[]> => {
     const res = await fetch('/api/customers');
     if (!res.ok) {
         const error = await res.text();
         throw new Error(error || 'Failed to fetch customers');
     }
-    return res.json();
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return res.json();
+    } else {
+        throw new Error('Invalid response format');
+    }
 };
 
 export const fetchWantListEntries = async (): Promise<WantListEntry[]> => {
-    const res = await fetch('/api/want-list-entries');
+    const res = await fetch('/api/want-list');
     if (!res.ok) {
         const error = await res.text();
         throw new Error(error || 'Failed to fetch want list entries');
     }
-    return res.json();
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return res.json();
+    } else {
+        throw new Error('Invalid response format');
+    }
 };
 
 export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
@@ -32,7 +40,12 @@ export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Custo
         const error = await res.text();
         throw new Error(error || 'Failed to add customer');
     }
-    return res.json();
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return res.json();
+    } else {
+        throw new Error('Invalid response format');
+    }
 };
 
 export const updateCustomer = async (customer: Customer): Promise<Customer> => {
@@ -49,8 +62,12 @@ export const updateCustomer = async (customer: Customer): Promise<Customer> => {
         throw new Error(errorData || 'Failed to update customer');
     }
 
-    const updatedCustomer = await response.json();
-    return updatedCustomer;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return response.json();
+    } else {
+        throw new Error('Invalid response format');
+    }
 };
 
 export const fetchCustomerById = async (id: number): Promise<Customer> => {
@@ -59,7 +76,12 @@ export const fetchCustomerById = async (id: number): Promise<Customer> => {
         const error = await res.text();
         throw new Error(error || 'Failed to fetch customer');
     }
-    return res.json();
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return res.json();
+    } else {
+        throw new Error('Invalid response format');
+    }
 };
 
 export const addWantListEntry = async (entry: Omit<WantListEntry, 'id' | 'customer_first_name' | 'customer_last_name' | 'created_at'>): Promise<WantListEntry> => {
@@ -74,15 +96,10 @@ export const addWantListEntry = async (entry: Omit<WantListEntry, 'id' | 'custom
         const error = await res.text();
         throw new Error(error || 'Failed to add want list entry');
     }
-    return res.json();
-};
-
-// Example usage for fetching images
-const fetchImage = async (imagePath: string) => {
-    const fullPath = prependAppDirectory(imagePath);
-    const res = await fetch(fullPath);
-    if (!res.ok) {
-        throw new Error(`Failed to fetch image at ${fullPath}`);
+    const contentType = res.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return res.json();
+    } else {
+        throw new Error('Invalid response format');
     }
-    return res.blob();
 };

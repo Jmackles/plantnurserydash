@@ -49,3 +49,12 @@ assets
 imageNames.txt
 output_Canyon_Creek_Abelia.bmp
 plantNames.txt
+getPlantImage.js
+imagePaths.txt
+getPlantImage.js
+plantReference.json
+plantson.py
+unmatchedImages.json
+unmatchedPlants.json
+unmatchedImages.json.old
+unmatchedPlants.json.old

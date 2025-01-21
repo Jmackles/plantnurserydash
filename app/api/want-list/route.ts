@@ -42,37 +42,35 @@ export async function GET() {
     }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
+    const { customer_id, initial, notes, plants } = await req.json();
+
     try {
-        const body = await request.json();
-        const { customer_id, initial, notes, plants } = body;
-        
         const db = await open({
             filename: './database.sqlite',
             driver: sqlite3.Database
         });
 
         const result = await db.run(
-            'INSERT INTO want_list (customer_id, initial, notes) VALUES (?, ?, ?)',
+            'INSERT INTO want_list (customer_id, initial, notes, is_closed) VALUES (?, ?, ?, 0)',
             [customer_id, initial, notes]
         );
 
-        if (plants && plants.length > 0) {
-            for (const plant of plants) {
-                await db.run(
-                    'INSERT INTO plants (want_list_id, name, size, quantity) VALUES (?, ?, ?, ?)',
-                    [result.lastID, plant.name, plant.size, plant.quantity]
-                );
-            }
+        const entryId = result.lastID;
+
+        for (const plant of plants) {
+            await db.run(
+                'INSERT INTO plants (want_list_id, name, size, quantity) VALUES (?, ?, ?, ?)',
+                [entryId, plant.name, plant.size, plant.quantity]
+            );
         }
 
-        return NextResponse.json({ id: result.lastID }, { status: 201 });
+        await db.close();
+
+        return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error adding want list entry:', error);
-        return NextResponse.json(
-            { error: 'Failed to add want list entry' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: 'Failed to add want list entry' }, { status: 500 });
     }
 }
 

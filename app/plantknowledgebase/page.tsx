@@ -13,6 +13,8 @@ const PlantKnowledgeBase = () => {
     const [sortField, setSortField] = useState<'TagName' | 'Botanical'>('TagName');
     const itemsPerPage = 10;
 
+    const translateValue = (value: string) => value === '1' ? 'Yes' : 'No';
+
     useEffect(() => {
         const fetchPlants = async () => {
             try {
@@ -106,17 +108,17 @@ const PlantKnowledgeBase = () => {
                                     <td className="py-2 px-4 border-b">{plant.TagName}</td>
                                     <td className="py-2 px-4 border-b">{plant.Botanical}</td>
                                     <td className="py-2 px-4 border-b">{plant.Department}</td>
-                                    <td className="py-2 px-4 border-b">{plant.Sun}</td>
-                                    <td className="py-2 px-4 border-b">{plant.PartSun}</td>
-                                    <td className="py-2 px-4 border-b">{plant.Shade}</td>
-                                    <td className="py-2 px-4 border-b">{plant.GrowthRate}</td>
-                                    <td className="py-2 px-4 border-b">{plant.MatureSize}</td>
-                                    <td className="py-2 px-4 border-b">{plant.Winterizing}</td>
-                                    <td className="py-2 px-4 border-b">{plant.SpecialCareAttributes}</td>
-                                    <td className="py-2 px-4 border-b">{plant.Price}</td>
-                                    <td className="py-2 px-4 border-b">{plant.Size}</td>
-                                    <td className="py-2 px-4 border-b">{plant.PotSize}</td>
-                                    <td className="py-2 px-4 border-b">{plant.PotType}</td>
+                                    <td className="py-2 px-4 border-b">{translateValue(plant.Sun)}</td>
+                                    <td className="py-2 px-4 border-b">{translateValue(plant.PartSun)}</td>
+                                    <td className="py-2 px-4 border-b">{translateValue(plant.Shade)}</td>
+                                    <td className="py-2 px-4 border-b">{plant.GrowthRate || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">{plant.MatureSize || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">{plant.Winterizing || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">{plant.SpecialCareAttributes || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">{plant.Price || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">{plant.Size || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">{plant.PotSize || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">{plant.PotType || 'N/A'}</td>
                                 </tr>
                             ))}
                         </tbody>

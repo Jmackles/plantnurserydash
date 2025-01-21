@@ -7,6 +7,8 @@ const PlantDetails = () => {
     const { id } = useParams();
     const [plant, setPlant] = useState<BenchTag | null>(null);
 
+    const translateValue = (value: string) => value === '1' ? 'Yes' : 'No';
+
     useEffect(() => {
         const fetchPlant = async () => {
             try {
@@ -37,9 +39,9 @@ const PlantDetails = () => {
                 )}
                 <p><strong>Botanical:</strong> {plant.Botanical}</p>
                 <p><strong>Department:</strong> {plant.Department}</p>
-                <p><strong>Sun:</strong> {plant.Sun}</p>
-                <p><strong>Part Sun:</strong> {plant.PartSun}</p>
-                <p><strong>Shade:</strong> {plant.Shade}</p>
+                <p><strong>Sun:</strong> {translateValue(plant.Sun)}</p>
+                <p><strong>Part Sun:</strong> {translateValue(plant.PartSun)}</p>
+                <p><strong>Shade:</strong> {translateValue(plant.Shade)}</p>
                 <p><strong>Growth Rate:</strong> {plant.GrowthRate}</p>
                 <p><strong>Mature Size:</strong> {plant.MatureSize}</p>
                 <p><strong>Winterizing:</strong> {plant.Winterizing}</p>

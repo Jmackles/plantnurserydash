@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add any custom global styles here */
+
 :root {
   --background: #f7f7f7; /* Soft pastel background */
   --foreground: #333333; /* Darker text for better contrast */
@@ -20,7 +22,6 @@
       max-width: none;
   }
 }
-
 
 body {
   color: var(--foreground);
@@ -133,5 +134,11 @@ body {
 
   .form-hint {
     @apply text-sm text-sage-600 mt-1;
+  }
+}
+
+@layer utilities {
+  .bg-lavender-400 {
+    background-color: theme('colors.lavender.400');
   }
 }

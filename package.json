@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tailwindcss/line-clamp": "^0.4.4",
     "axios": "^1.7.9",
     "msnodesqlv8": "^4.4.0",
     "mssql": "^11.0.1",

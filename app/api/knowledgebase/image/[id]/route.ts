@@ -3,9 +3,12 @@ import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
     try {
-        const { id } = params;
+        const { id } = await context.params;
 
         const db = await open({
             filename: path.join(process.cwd(), 'app/database/database.sqlite'),
@@ -24,9 +27,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             return NextResponse.json({ error: 'Image not found' }, { status: 404 });
         }
 
-        return new NextResponse(plantImage.Image, {
+        // Convert the Buffer to a proper format
+        const imageBuffer = Buffer.from(plantImage.Image);
+
+        return new NextResponse(imageBuffer, {
             headers: {
                 'Content-Type': 'image/jpeg',
+                'Content-Length': imageBuffer.length.toString(),
                 'Content-Disposition': `inline; filename="${id}.jpg"`
             }
         });

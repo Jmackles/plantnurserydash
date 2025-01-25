@@ -27,15 +27,19 @@ export async function GET(
             return NextResponse.json({ error: 'Image not found' }, { status: 404 });
         }
 
-        // Convert the Buffer to a proper format
-        const imageBuffer = Buffer.from(plantImage.Image);
+        // Create a ReadableStream from the image buffer
+        const stream = new ReadableStream({
+            start(controller) {
+                controller.enqueue(Buffer.from(plantImage.Image));
+                controller.close();
+            },
+        });
 
-        return new NextResponse(imageBuffer, {
+        return new NextResponse(stream, {
             headers: {
                 'Content-Type': 'image/jpeg',
-                'Content-Length': imageBuffer.length.toString(),
-                'Content-Disposition': `inline; filename="${id}.jpg"`
-            }
+                'Cache-Control': 'public, max-age=31536000, immutable',
+            },
         });
     } catch (error: unknown) {
         console.error('Error fetching image:', error);

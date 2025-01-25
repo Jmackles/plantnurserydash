@@ -85,10 +85,10 @@ export interface BenchTags {
     DeerResistance?: string;
     Nativity?: string;
     CarNative: boolean;
-    MeltingSun: boolean;
-    FullSun: boolean;
-    PartSun: boolean;
-    Shade: boolean;
+    MeltingSun: 0 | 1;
+    FullSun: 0 | 1;
+    PartSun: 0 | 1;
+    Shade: 0 | 1;
     GrowthRate: string;
     AvgSize?: string;
     MaxSize?: string;

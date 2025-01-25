@@ -1,0 +1,164 @@
+Option Compare Database
+
+
+Private Sub ShowMessage(msg As String)
+    Dim out As String
+    out = MsgBox(msg, vbOKOnly)
+End Sub
+
+
+Private Sub Detail_Format(Cancel As Integer, FormatCount As Integer)
+    ' Data connection objects/vars
+    Dim conn As New ADODB.Connection
+    Dim rst As New ADODB.Recordset
+    Dim strSQL As String
+    Dim strID As Integer
+    
+    ' Data vars
+    Dim strTagName As String
+    Dim strBotanical As String
+    Dim boolNoWarranty As Boolean
+    Dim strDeerResistance As String
+    Dim boolNative As Boolean
+    Dim boolMeltingSun As Boolean
+    Dim boolFullSun As Boolean
+    Dim boolPartSun As Boolean
+    Dim boolShade As Boolean
+    Dim strGrowthRate As String
+    Dim strMatureSize As String
+    Dim intZoneMin As Integer
+    Dim intZoneMax As Integer
+    Dim strWinterizing As String
+    Dim strNotes As String
+    Dim strPrice As String
+    Dim strSize As String
+    Dim boolFlatPricing As Boolean
+    Dim intFlatCount As Integer
+    Dim strFlatPrice As String
+    Dim boolTopNotes As Boolean
+    Dim strTopNotes As String
+    
+    ' strangely, if growth rate is missing, the code cannot see the value of IDText
+    
+    
+    
+    strID = Me.IDText                                           ' get the record ID from the report
+    Set conn = CurrentProject.Connection                        ' use the current connection
+    Set rst = New ADODB.Recordset                               ' create a blank recordset object
+    strSQL = "SELECT * FROM BenchTags WHERE ID = " & strID      ' SQL statement to load the current record based on ID
+    rst.Open strSQL, conn, adOpenStatic                         ' populate the recordset object with the data
+    
+    ' Extract the data and store as vars
+    strTagName = IIf(IsNull(rst!TagName) Or rst!TagName = "", "???", rst!TagName)
+    strBotanical = IIf(IsNull(rst!Botanical) Or rst!Botanical = "", "", rst!Botanical)
+    boolNoWarranty = rst!NoWarranty
+    strDeerResistance = IIf(IsNull(rst!DeerResistance) Or rst!DeerResistance = "", "TBD", rst!DeerResistance)
+    boolCarNative = rst!CarNative
+    boolMeltingSun = rst!MeltingSun
+    boolFullSun = rst!FullSun
+    boolPartSun = rst!PartSun
+    boolShade = rst!Shade
+    strGrowthRate = IIf(IsNull(rst!GrowthRate) Or rst!GrowthRate = "", "TBD", rst!GrowthRate)
+    strMatureSize = IIf(IsNull(rst!MatureSize) Or rst!MatureSize = "", "TBD", rst!MatureSize)
+    intZoneMin = IIf(IsNull(rst!ZoneMin) Or rst!ZoneMin = "", -1, rst!ZoneMin)
+    intZoneMax = IIf(IsNull(rst!ZoneMax) Or rst!ZoneMax = "", -1, rst!ZoneMax)
+    strWinterizing = IIf(IsNull(rst!Winterizing) Or rst!Winterizing = "", "TBD", rst!Winterizing)
+    strNotes = IIf(IsNull(rst!Notes), "", rst!Notes)
+    strPrice = IIf(IsNull(rst!Price) Or rst!Price = "", "???.??", rst!Price)
+    strSize = IIf(IsNull(rst!Size) Or rst!Size = "", "", rst!Size)
+    boolFlatPricing = rst!FlatPricing
+    intFlatCount = IIf(IsNull(rst!FlatCount), -1, rst!FlatCount)
+    strFlatPrice = IIf(IsNull(rst!FlatPrice), "???.??", rst!FlatPrice)
+    boolTopNotes = rst!ShowTopNotes
+    
+    ' use the data to format the report
+    
+    ' Decide whether to show the No Warranty note at top
+    Me.NoWarrantyText.Visible = boolNoWarranty
+    
+    ' Decide whether to show alternate notes in the No Warranty space
+    ' Note that this does NOT check to see whether the no warranty note is showing
+    Me.TopNotes.Visible = boolTopNotes
+    
+    
+    ' *** Sun condition icons ***
+    ' The grayed out images are set to show if the boolean value is false
+    ' The bolded images are set to show if the boolean value is true
+    Me.MeltingSunImage.Visible = boolMeltingSun
+    Me.MeltingSunImageGrayed.Visible = Not boolMeltingSun
+    Me.FullSunImage.Visible = boolFullSun
+    Me.FullSunImageGrayed.Visible = Not boolFullSun
+    Me.PartSunImage.Visible = boolPartSun
+    Me.PartSunImageGrayed.Visible = Not boolPartSun
+    Me.ShadeImage.Visible = boolShade
+    Me.ShadeImageGrayed.Visible = Not boolShade
+
+    ' Native
+    Me.NativeImage.Visible = boolNative
+    Me.NativeText.Visible = boolNative
+
+    'Deer Resistance
+    If strDeerResistance = "None" Then
+        Me.DeerResistanceImage.Visible = False
+        Me.DeerResistanceLabel.Visible = False
+        Me.DeerResistanceText.Visible = False
+    Else
+        Me.DeerResistanceImage.Visible = True
+        Me.DeerResistanceLabel.Visible = True
+        Me.DeerResistanceText.Visible = True
+    End If
+    
+    ' *** Size and Growth Info ***
+    ' If growth rate is empty (value is "N/A"), then format accordingly
+    If strGrowthRate = "N/A" Then
+        ' hide the growth rate label and text
+        Me.GrowthRateLabel.Visible = False
+        Me.GrowthRateText.Visible = False
+        
+        ' center the mature size line vertically next to the icon
+        Me.MatureSizeLabel.Top = 3660
+        Me.MatureSizeText.Top = 3660
+    Else
+        ' hide the growth rate label and text
+        Me.GrowthRateLabel.Visible = True
+        Me.GrowthRateText.Visible = True
+        
+        ' move the mature size line under the growth rate line
+        Me.MatureSizeLabel.Top = 3840
+        Me.MatureSizeText.Top = 3840
+    End If
+    
+    ' *** Zone info ***
+    ' hide the zone info if either of the zones are set to -1
+    ' This logic is done within the report itself, as an expression within the text box
+
+    ' *** Flat Pricing ***
+    ' show the top line of size and price if there is flat pricing
+    Me.Size1Text.Visible = boolFlatPricing
+    Me.Price1Text.Visible = boolFlatPricing
+
+    If strPrice = "-1" Then
+        ' write "price as marked"
+        Me.Size1Text.Visible = True
+        Me.Size1Text = strSize
+        Me.Size2Text = ""
+        Me.Price2Text = "Priced as Marked"
+        Me.Price2Text.TextAlign = 1
+        Me.Price2Text.FontSize = 28
+        
+    ElseIf boolFlatPricing = True Then
+        ' place individual price on first line and flat price on second line
+        Me.Size1Text = strSize
+        Me.Price1Text = strPrice
+        Me.Size2Text = intFlatCount & "-ct. Flat"
+        Me.Price2Text = strFlatPrice
+        Me.Price2Text.TextAlign = 3
+        Me.Price2Text.FontSize = 36
+    Else
+        ' place individual price on bottom line
+        Me.Size2Text = strSize
+        Me.Price2Text = strPrice
+        Me.Price2Text.TextAlign = 3
+        Me.Price2Text.FontSize = 36
+    End If
+End Sub

@@ -13,18 +13,22 @@ const WantListDashboard = () => {
     const [editData, setEditData] = useState<WantListEntry | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const [useNewCustomer, setUseNewCustomer] = useState(false);
-    const [newEntryData, setNewEntryData] = useState({
-        customer_id: '',
+    const [newEntryData, setNewEntryData] = useState<WantListEntry>({
+        id: 0,
+        customer_id: 0,
         initial: '',
         notes: '',
         plants: [{ name: '', size: '', quantity: 1 }],
-        created_at: new Date().toISOString(), // Add this line
+        created_at: new Date().toISOString(),
     });
-    const [newCustomerData, setNewCustomerData] = useState({
+    const [newCustomerData, setNewCustomerData] = useState<Customer>({
+        id: 0,
         first_name: '',
         last_name: '',
         phone: '',
         email: '',
+        is_active: true,
+        notes: ''
     });
     const [selectedEntries, setSelectedEntries] = useState<number[]>([]);
     const [bulkCloseData, setBulkCloseData] = useState({ initial: '', notes: '' });
@@ -97,7 +101,7 @@ const WantListDashboard = () => {
         }
     };
 
-    const handleNewEntryChange = (field: keyof typeof newEntryData, value: string | number | boolean) => {
+    const handleNewEntryChange = (field: keyof WantListEntry, value: string | number | boolean) => {
         setNewEntryData((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -114,7 +118,7 @@ const WantListDashboard = () => {
         });
     };
 
-    const handleNewCustomerChange = (field: keyof typeof newCustomerData, value: string) => {
+    const handleNewCustomerChange = (field: keyof Customer, value: string) => {
         setNewCustomerData((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -123,15 +127,15 @@ const WantListDashboard = () => {
             let customerId = newEntryData.customer_id;
             if (useNewCustomer) {
                 const newCustomer = await addCustomer(newCustomerData);
-                customerId = newCustomer.id.toString();
+                customerId = newCustomer.id;
             }
             await addWantListEntry({
                 ...newEntryData,
-                customer_id: parseInt(customerId),
-                created_at: new Date().toISOString(), // Ensure created_at is set
+                customer_id: customerId,
+                created_at: new Date().toISOString(),
             });
             console.log('New want list entry added successfully!');
-            await fetchEntries(); // Re-fetch data after adding new entry
+            await fetchEntries();
             closeModal();
         } catch (error) {
             console.error('Error adding new entry:', error);
@@ -222,7 +226,7 @@ const WantListDashboard = () => {
                 </Modal>
             )}
 
-            <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {sortedEntries.map(entry => (
                     <WantListCard
                         key={entry.id}

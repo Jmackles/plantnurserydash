@@ -1,31 +1,42 @@
 'use client'
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import SearchFilterPanel from '../components/shared/SearchFilterPanel';
 import PlantCard from '../components/cards/PlantCard';
-import { BenchTag } from '../lib/types';
+import { BenchTags, KnowledgeBaseResponse } from '../lib/types';
 
 const PlantKnowledgeBase = () => {
-    const [plants, setPlants] = useState<BenchTag[]>([]);
+    const [plants, setPlants] = useState<BenchTags[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'card'>('card');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortField, setSortField] = useState<'TagName' | 'Botanical'>('TagName');
+    const [totalPages, setTotalPages] = useState(1);
     const itemsPerPage = 10;
 
-    const translateValue = (value: string) => value === '1' ? 'Yes' : 'No';
+    const translateBooleanValue = (value: boolean | null) => {
+        if (value === null) return 'N/A';
+        return value ? 'Yes' : 'No';
+    };
 
     useEffect(() => {
         const fetchPlants = async () => {
             try {
                 const response = await fetch(`/api/knowledgebase?page=${currentPage}&limit=${itemsPerPage}`);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const result: KnowledgeBaseResponse = await response.json();
+                
+                // Validate data before setting state
+                if (Array.isArray(result.data)) {
+                    setPlants(result.data);
+                    setTotalPages(result.pagination.totalPages);
+                } else {
+                    throw new Error('Invalid data format received');
                 }
-                const data = await response.json();
-                setPlants(data);
             } catch (error) {
                 console.error('Error fetching plants:', error);
+                setPlants([]);
             }
         };
 
@@ -35,17 +46,20 @@ const PlantKnowledgeBase = () => {
     const filteredPlants = plants
         .filter((plant) => {
             const matchesSearchQuery = 
-                plant.TagName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                plant.Botanical.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                plant.Department.toLowerCase().includes(searchQuery.toLowerCase());
+                (plant.TagName ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (plant.Botanical ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (plant.Department ?? '').toLowerCase().includes(searchQuery.toLowerCase());
 
-            const matchesFilter = filter === '' || plant.Department.toLowerCase() === filter.toLowerCase();
+            const matchesFilter = filter === '' || (plant.Department ?? '').toLowerCase() === filter.toLowerCase();
 
             return matchesSearchQuery && matchesFilter;
         })
-        .sort((a, b) => a[sortField].localeCompare(b[sortField]));
+        .sort((a, b) => {
+            const aVal = a[sortField] || '';
+            const bVal = b[sortField] || '';
+            return aVal.localeCompare(bVal);
+        });
 
-    const totalPages = Math.ceil(filteredPlants.length / itemsPerPage);
     const paginatedPlants = filteredPlants.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
@@ -73,7 +87,7 @@ const PlantKnowledgeBase = () => {
             {viewMode === 'card' ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     {paginatedPlants.map((plant, index) => (
-                        <PlantCard key={index} plant={plant} />
+                        <PlantCard key={plant.ID || index} plant={plant} />
                     ))}
                 </div>
             ) : (
@@ -81,44 +95,54 @@ const PlantKnowledgeBase = () => {
                     <table className="min-w-full bg-white shadow-md rounded-lg">
                         <thead>
                             <tr>
+                                <th className="py-2 px-4 border-b">Image</th>
                                 <th className="py-2 px-4 border-b">Tag Name</th>
                                 <th className="py-2 px-4 border-b">Botanical</th>
                                 <th className="py-2 px-4 border-b">Department</th>
-                                <th className="py-2 px-4 border-b">Sun</th>
+                                <th className="py-2 px-4 border-b">Full Sun</th>
                                 <th className="py-2 px-4 border-b">Part Sun</th>
                                 <th className="py-2 px-4 border-b">Shade</th>
                                 <th className="py-2 px-4 border-b">Growth Rate</th>
                                 <th className="py-2 px-4 border-b">Mature Size</th>
-                                <th className="py-2 px-4 border-b">Winterizing</th>
-                                <th className="py-2 px-4 border-b">Special Care/Attributes</th>
+                                <th className="py-2 px-4 border-b">Zones</th>
+                                <th className="py-2 px-4 border-b">Notes</th>
                                 <th className="py-2 px-4 border-b">Price</th>
                                 <th className="py-2 px-4 border-b">Size</th>
-                                <th className="py-2 px-4 border-b">Pot Size</th>
-                                <th className="py-2 px-4 border-b">Pot Type</th>
+                                <th className="py-2 px-4 border-b">Pot Details</th>
                             </tr>
                         </thead>
                         <tbody>
                             {paginatedPlants.map((plant, index) => (
-                                <tr key={index} className="cursor-pointer" onClick={() => window.location.href = `/plantknowledgebase/${plant.ID}`}>
+                                <tr key={plant.ID || index} className="cursor-pointer hover:bg-gray-50" 
+                                    onClick={() => window.location.href = `/plantknowledgebase/${plant.ID}`}>
                                     <td className="py-2 px-4 border-b">
-                                        {plant.Image && (
-                                            <img src={plant.Image} alt={plant.TagName} className="w-32 h-32 object-cover mb-4" />
+                                        {plant.ImageUrl && (
+                                            <img 
+                                                src={plant.ImageUrl}
+                                                alt={plant.TagName || ''}
+                                                width={128}
+                                                height={128}
+                                                className="object-cover"
+                                            />
                                         )}
                                     </td>
                                     <td className="py-2 px-4 border-b">{plant.TagName}</td>
                                     <td className="py-2 px-4 border-b">{plant.Botanical}</td>
                                     <td className="py-2 px-4 border-b">{plant.Department}</td>
-                                    <td className="py-2 px-4 border-b">{translateValue(plant.Sun)}</td>
-                                    <td className="py-2 px-4 border-b">{translateValue(plant.PartSun)}</td>
-                                    <td className="py-2 px-4 border-b">{translateValue(plant.Shade)}</td>
+                                    <td className="py-2 px-4 border-b">{translateBooleanValue(plant.FullSun)}</td>
+                                    <td className="py-2 px-4 border-b">{translateBooleanValue(plant.PartSun)}</td>
+                                    <td className="py-2 px-4 border-b">{translateBooleanValue(plant.Shade)}</td>
                                     <td className="py-2 px-4 border-b">{plant.GrowthRate || 'N/A'}</td>
                                     <td className="py-2 px-4 border-b">{plant.MatureSize || 'N/A'}</td>
-                                    <td className="py-2 px-4 border-b">{plant.Winterizing || 'N/A'}</td>
-                                    <td className="py-2 px-4 border-b">{plant.SpecialCareAttributes || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">
+                                        {plant.ZoneMin && plant.ZoneMax ? `${plant.ZoneMin}-${plant.ZoneMax}` : 'N/A'}
+                                    </td>
+                                    <td className="py-2 px-4 border-b">{plant.Notes || 'N/A'}</td>
                                     <td className="py-2 px-4 border-b">{plant.Price || 'N/A'}</td>
                                     <td className="py-2 px-4 border-b">{plant.Size || 'N/A'}</td>
-                                    <td className="py-2 px-4 border-b">{plant.PotSize || 'N/A'}</td>
-                                    <td className="py-2 px-4 border-b">{plant.PotType || 'N/A'}</td>
+                                    <td className="py-2 px-4 border-b">
+                                        {plant.PotSize ? `${plant.PotSize}${plant.PotSizeUnit || ''} ${plant.PotType || ''}` : 'N/A'}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

@@ -1,30 +1,40 @@
 import { Customer, WantListEntry } from "./types";
 
 export const fetchCustomers = async (): Promise<Customer[]> => {
-    const res = await fetch('/api/customers');
-    if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || 'Failed to fetch customers');
-    }
-    const contentType = res.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-        return res.json();
-    } else {
-        throw new Error('Invalid response format');
+    try {
+        const res = await fetch('/api/customers');
+        if (!res.ok) {
+            const error = await res.text();
+            throw new Error(error || 'Failed to fetch customers');
+        }
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return res.json();
+        } else {
+            throw new Error('Invalid response format');
+        }
+    } catch (error) {
+        console.error('Error fetching customers:', error);
+        throw error;
     }
 };
 
 export const fetchWantListEntries = async (): Promise<WantListEntry[]> => {
-    const res = await fetch('/api/want-list');
-    if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || 'Failed to fetch want list entries');
-    }
-    const contentType = res.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-        return res.json();
-    } else {
-        throw new Error('Invalid response format');
+    try {
+        const res = await fetch('/api/want-list');
+        if (!res.ok) {
+            const error = await res.text();
+            throw new Error(error || 'Failed to fetch want list entries');
+        }
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return res.json();
+        } else {
+            throw new Error('Invalid response format');
+        }
+    } catch (error) {
+        console.error('Error fetching want list entries:', error);
+        throw error;
     }
 };
 

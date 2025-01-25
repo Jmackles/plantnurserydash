@@ -4,7 +4,7 @@ import Link from 'next/link';
 import SearchFilterPanel from '../components/shared/SearchFilterPanel';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
 import { fetchCustomers, addCustomer, updateCustomer } from '../lib/api';
-import { Customer } from '../lib/types';
+import { Customer, Plant } from '../lib/types';
 
 const Dashboard = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -15,7 +15,13 @@ const Dashboard = () => {
 
     useEffect(() => {
         fetchCustomers()
-            .then(setCustomers)
+            .then((data) => {
+                // Filter out invalid customer data
+                const validCustomers = data.filter((customer: Customer) => 
+                    customer && customer.id && customer.first_name && customer.last_name && customer.phone && customer.email
+                );
+                setCustomers(validCustomers);
+            })
             .catch((error) => {
                 console.error('Error:', error);
                 setCustomers([]);
@@ -24,16 +30,11 @@ const Dashboard = () => {
 
     const filteredCustomers = customers.filter((customer) => {
         try {
-            if (!customer || !customer.first_name || !customer.last_name || !customer.phone || !customer.email) {
-                console.warn('Invalid customer data:', customer);
-                return false;
-            }
-
             const matchesSearchQuery = 
-                customer.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                customer.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                customer.phone.includes(searchQuery) ||
-                customer.email.toLowerCase().includes(searchQuery.toLowerCase());
+                (customer.first_name && customer.first_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (customer.last_name && customer.last_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (customer.phone && customer.phone.includes(searchQuery)) ||
+                (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase()));
 
             const matchesFilter = filter === '' || (filter === 'active' && customer.is_active) || (filter === 'inactive' && !customer.is_active);
 

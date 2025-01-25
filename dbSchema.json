@@ -1,0 +1,423 @@
+{
+  "All Perennials": {
+    "schema": "dbo",
+    "columns": [
+      {
+        "COLUMN_NAME": "ID",
+        "DATA_TYPE": "int",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "TagName",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Botanical",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Department",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Classification",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Winterizing",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "NoWarranty",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "DeerResistance",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "CarNative",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "MeltingSun",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "FullSun",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "PartSun",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "Shade",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "GrowthRate",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "MatureSize",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "ZoneMax",
+        "DATA_TYPE": "smallint",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "ZoneMin",
+        "DATA_TYPE": "smallint",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Notes",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Image",
+        "DATA_TYPE": "image",
+        "CHARACTER_MAXIMUM_LENGTH": 2147483647,
+        "IS_NULLABLE": "YES"
+      }
+    ]
+  },
+  "BenchTag Images": {
+    "schema": "dbo",
+    "columns": [
+      {
+        "COLUMN_NAME": "TagName",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Botanical",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Image",
+        "DATA_TYPE": "image",
+        "CHARACTER_MAXIMUM_LENGTH": 2147483647,
+        "IS_NULLABLE": "YES"
+      }
+    ]
+  },
+  "BenchTags": {
+    "schema": "dbo",
+    "columns": [
+      {
+        "COLUMN_NAME": "ID",
+        "DATA_TYPE": "int",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "TagName",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Botanical",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Department",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Classification",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "NoWarranty",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "DeerResistance",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Nativity",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "CarNative",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "MeltingSun",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "FullSun",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "PartSun",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "Shade",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "GrowthRate",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "AvgSize",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "MaxSize",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "MatureSize",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "ZoneMax",
+        "DATA_TYPE": "smallint",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "ZoneMin",
+        "DATA_TYPE": "smallint",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Winterizing",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Notes",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "ShowTopNotes",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "TopNotes",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Image",
+        "DATA_TYPE": "image",
+        "CHARACTER_MAXIMUM_LENGTH": 2147483647,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Price",
+        "DATA_TYPE": "money",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Size",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "PotSize",
+        "DATA_TYPE": "float",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "PotSizeUnit",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "PotDepth",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "PotShape",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "PotType",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "PotCustomText",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "FlatPricing",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "FlatCount",
+        "DATA_TYPE": "int",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "FlatPrice",
+        "DATA_TYPE": "money",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "YES"
+      },
+      {
+        "COLUMN_NAME": "Print",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      }
+    ]
+  },
+  "CheckTable": {
+    "schema": "dbo",
+    "columns": [
+      {
+        "COLUMN_NAME": "ID",
+        "DATA_TYPE": "int",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "Needs Info",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "New",
+        "DATA_TYPE": "bit",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      }
+    ]
+  },
+  "GrowthRateOptions": {
+    "schema": "dbo",
+    "columns": [
+      {
+        "COLUMN_NAME": "ID",
+        "DATA_TYPE": "int",
+        "CHARACTER_MAXIMUM_LENGTH": null,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "Description",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "NO"
+      },
+      {
+        "COLUMN_NAME": "GrowthRateRange",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "NO"
+      }
+    ]
+  },
+  "WinterizingOptions": {
+    "schema": "dbo",
+    "columns": [
+      {
+        "COLUMN_NAME": "Type",
+        "DATA_TYPE": "nvarchar",
+        "CHARACTER_MAXIMUM_LENGTH": 255,
+        "IS_NULLABLE": "YES"
+      }
+    ]
+  },
+  "foreignKeys": []
+}

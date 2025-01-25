@@ -1,31 +1,66 @@
+// filename: app/api/benchTags/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
-import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
+import path from 'path';
 
 export async function GET(req: NextRequest) {
     try {
+        const url = new URL(req.url);
+        const page = parseInt(url.searchParams.get('page') || '1', 10);
+        const limit = parseInt(url.searchParams.get('limit') || '10', 10);
+        const offset = (page - 1) * limit;
+
         const db = await open({
-            filename: './converted_database.sqlite',
+            filename: path.join(process.cwd(), 'app/database/database.sqlite'),
             driver: sqlite3.Database
         });
 
-        // Add indexes to improve query performance
-        await db.exec('CREATE INDEX IF NOT EXISTS idx_tagname ON BenchTags (TagName)');
-        await db.exec('CREATE INDEX IF NOT EXISTS idx_botanical ON BenchTags (Botanical)');
+        // Get total count
+        const [{ total }] = await db.all<{ total: number }>('SELECT COUNT(*) as total FROM BenchTags');
 
-        // Fetch a limited number of records
-        const entries = await db.all('SELECT * FROM BenchTags LIMIT 100');
+        // Get paginated data
+        const plants = await db.all(`
+            SELECT BenchTags.*, [BenchTag Images].Image
+            FROM BenchTags
+            LEFT JOIN [BenchTag Images] ON BenchTags.TagName = [BenchTag Images].TagName
+            ORDER BY TagName
+            LIMIT ? OFFSET ?
+        `, [limit, offset]);
+
+        // Generate image URLs
+        const plantsWithImageUrls = plants.map(plant => {
+            if (plant.Image) {
+                plant.ImageUrl = `/api/knowledgebase/image/${plant.ID}`;
+            }
+            return plant;
+        });
+
         await db.close();
 
-        // Convert image data to base64 string
-        const processedEntries = entries.map(entry => ({
-            ...entry,
-            Image: entry.Image ? `data:image/bmp;base64,${Buffer.from(entry.Image).toString('base64')}` : null
-        }));
+        return NextResponse.json({
+            data: plantsWithImageUrls,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
 
-        return NextResponse.json(processedEntries);
-    } catch (error) {
-        console.error('Error fetching knowledgebase entries:', error);
-        return NextResponse.json({ error: 'Failed to fetch knowledgebase entries' }, { status: 500 });
+    } catch (error: unknown) {
+        console.error('Database error:', error);
+        return NextResponse.json({
+            error: 'Failed to fetch knowledgebase entries',
+            details: error instanceof Error ? error.message : 'Unknown error',
+            data: [],
+            pagination: {
+                total: 0,
+                page: 1,
+                limit: 10,
+                totalPages: 0
+            }
+        }, { status: 500 });
     }
 }

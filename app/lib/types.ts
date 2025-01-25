@@ -14,28 +14,24 @@ export interface WantListPlant {
     quantity: number;
 }
 
-export interface Plant extends WantListPlant {
-    botanical: string;
-    price: string;
-    matureSize: string;
-    growthRate: string;
-    deerResistance: string;
-    sun: number;
-    shade: number;
-    native: number;
+export interface Plant {
+    id?: number;
+    want_list_entry_id?: number;
+    name: string;
+    size: string;
+    quantity: number;
 }
 
 export interface WantListEntry {
     id: number;
     customer_id: number;
     initial: string;
-    notes?: string;
-    is_closed: boolean;
-    spoken_to?: string;
-    plants: Plant[]; // Change this line to use Plant instead of WantListPlant
-    customer_first_name: string;
-    customer_last_name: string;
+    notes: string;
+    plants: Plant[];
     created_at: string;
+    is_closed?: boolean;
+    closed_by?: string;
+    spoken_to?: string;
 }
 
 export interface FormData {
@@ -63,38 +59,114 @@ export interface DashboardMetrics {
     activeWantlists: number;
     totalPlants: number;
     pendingOrders: number;
+    averagePlantsPerWantList: number;
+    totalOrders: number;
+    completedOrders: number;
 }
 
 export interface ActivityItem {
     type: 'wantlist' | 'customer' | 'order';
     customer: string;
+    customer_id: number;
     time: string;
     action: string;
 }
+export type AllPerennials = object;
 
-export interface BenchTag {
-    ID: string;
-    TagName: string;
-    Botanical: string;
-    Department: string;
-    NoWarranty: string;
-    DeerResistance: string;
-    Native: string;
-    Sun: string;
-    PartSun: string;
-    Shade: string;
+export type BenchTagImages = object;
+
+export interface BenchTags {
+    ID: number;
+    TagName?: string;
+    Botanical?: string;
+    Department?: string;
+    Classification?: string;
+    NoWarranty: boolean;
+    DeerResistance?: string;
+    Nativity?: string;
+    CarNative: boolean;
+    MeltingSun: boolean;
+    FullSun: boolean;
+    PartSun: boolean;
+    Shade: boolean;
     GrowthRate: string;
-    MatureSize: string;
-    Winterizing: string;
-    SpecialCareAttributes: string;
-    Image: string;
-    Price: string;
-    Size: string;
-    PotSize: string;
-    PotSizeUnit: string;
-    PotDepth: string;
-    PotShape: string;
-    PotType: string;
-    PotCustomText: string;
-    Print: string;
+    AvgSize?: string;
+    MaxSize?: string;
+    MatureSize?: string;
+    ZoneMax?: string;
+    ZoneMin?: string;
+    Winterizing?: string;
+    Notes?: string;
+    ShowTopNotes: boolean;
+    TopNotes?: string;
+    Image?: string;
+    Price?: string;
+    Size?: string;
+    PotSize?: string;
+    PotSizeUnit?: string;
+    PotDepth?: string;
+    PotShape?: string;
+    PotType?: string;
+    PotCustomText?: string;
+    FlatPricing: boolean;
+    FlatCount?: number;
+    FlatPrice?: string;
+    Print: boolean;
+    Sun?: boolean;
+    SpecialCareAttributes?: string;
+}
+
+export interface CheckTable {
+    ID: number;
+    Needs: string | number | boolean | object;
+    New: boolean;
+    'Needs Info?': boolean;
+}
+
+export interface GrowthRateOptions {
+    ID: number;
+    Description: string;
+    GrowthRateRange: string;
+}
+
+export interface WinterizingOptions {
+    Type?: string;
+}
+
+export interface PlantKnowledgeBase {
+    id: number;
+    common_name: string;
+    botanical_name: string;
+    department: string;
+    classification?: string;
+    deer_resistance?: string;
+    native?: boolean;
+    full_sun?: boolean;
+    part_sun?: boolean;
+    shade?: boolean;
+    growth_rate?: string;
+    mature_size?: string;
+    zone_min?: number;
+    zone_max?: number;
+    winterizing?: string;
+    notes?: string;
+    image_url?: string;
+    price?: string;
+    size?: string;
+    pot_size?: string;
+    pot_type?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface KnowledgeBaseResponse {
+    data: BenchTags[];
+    pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+    error?: string;
+    details?: string;
 }

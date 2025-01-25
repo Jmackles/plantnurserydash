@@ -1,34 +1,33 @@
-import React from 'react';
-import Link from 'next/link';
-import { BenchTag } from '../../lib/types';
+import React, { useState } from 'react';
+import Image from 'next/image';
+import { BenchTags } from '../../lib/types';
 
 interface PlantCardProps {
-    plant: BenchTag;
+    plant: BenchTags;
 }
 
-const translateValue = (value: string) => value === '1' ? 'Yes' : 'No';
-
 const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
+    const [imageError, setImageError] = useState(false);
+    
     return (
-        <Link href={`/plantknowledgebase/${plant.ID}`} className="card-section">
-            {plant.Image && (
-                <img src={plant.Image} alt={plant.TagName} className="w-full h-32 object-cover mb-2" />
+        <div className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+            {plant.ImageUrl && (
+                <img 
+                    src={plant.ImageUrl}
+                    alt={plant.TagName || ''}
+                    className="w-full h-48 object-cover"
+                />
             )}
-            <h2 className="text-xl font-semibold">{plant.TagName}</h2>
-            <p><strong>Botanical:</strong> {plant.Botanical}</p>
-            <p><strong>Department:</strong> {plant.Department}</p>
-            <p><strong>Sun:</strong> {translateValue(plant.Sun)}</p>
-            <p><strong>Part Sun:</strong> {translateValue(plant.PartSun)}</p>
-            <p><strong>Shade:</strong> {translateValue(plant.Shade)}</p>
-            <p><strong>Growth Rate:</strong> {plant.GrowthRate}</p>
-            <p><strong>Mature Size:</strong> {plant.MatureSize}</p>
-            <p><strong>Winterizing:</strong> {plant.Winterizing}</p>
-            <p><strong>Special Care/Attributes:</strong> {plant.SpecialCareAttributes}</p>
-            <p><strong>Price:</strong> {plant.Price}</p>
-            <p><strong>Size:</strong> {plant.Size}</p>
-            <p><strong>Pot Size:</strong> {plant.PotSize}</p>
-            <p><strong>Pot Type:</strong> {plant.PotType}</p>
-        </Link>
+            <div className="p-4">
+                <h3 className="text-xl font-semibold">{plant.TagName}</h3>
+                <p className="text-gray-600 italic">{plant.Botanical}</p>
+                <p className="text-gray-500">{plant.Department}</p>
+                <div className="mt-2">
+                    <p>Size: {plant.Size || 'N/A'}</p>
+                    <p>Price: {plant.Price || 'N/A'}</p>
+                </div>
+            </div>
+        </div>
     );
 };
 

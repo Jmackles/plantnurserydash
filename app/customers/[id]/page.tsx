@@ -14,8 +14,12 @@ const CustomerDetails = () => {
         if (id) {
             fetchCustomerById(Number(id))
                 .then((data) => {
-                    setCustomer(data);
-                    setEditData(data);
+                    if (data && data.id) {
+                        setCustomer(data);
+                        setEditData(data);
+                    } else {
+                        console.error('Invalid customer data:', data);
+                    }
                 })
                 .catch((error) => {
                     console.error('Error fetching customer:', error);

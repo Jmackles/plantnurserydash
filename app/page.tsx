@@ -18,8 +18,17 @@ export default function Dashboard() {
                     fetchWantListEntries()
                 ]);
 
-                const orders = []; // Fetch orders if you have an API for it
-                const calculatedMetrics = getMetrics(customers, wantListEntries, orders);
+                const orders: any[] = []; // Explicitly type as any[]
+                const calculatedMetrics: DashboardMetrics = {
+                    totalCustomers: customers.length,
+                    activeWantlists: wantListEntries.filter(w => !w.is_closed).length,
+                    totalPlants: wantListEntries.reduce((acc, w) => acc + w.plants.length, 0),
+                    pendingOrders: orders.filter(o => !o.completed).length,
+                    averagePlantsPerWantList: wantListEntries.length ? 
+                        Math.round(wantListEntries.reduce((acc, w) => acc + w.plants.length, 0) / wantListEntries.length) : 0,
+                    totalOrders: orders.length,
+                    completedOrders: orders.filter(o => o.completed).length
+                };
 
                 setMetrics(calculatedMetrics);
 
@@ -56,9 +65,7 @@ export default function Dashboard() {
                         <div className="text-sm text-sage-500 capitalize">
                             {key.replace(/([A-Z])/g, ' $1').trim()}
                         </div>
-                        <Tooltip id={key} place="top" effect="solid">
-                            {`This metric represents ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}.`}
-                        </Tooltip>
+                        <Tooltip id={key} place="top" content={`This metric represents ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}.`} />
                     </div>
                 ))}
             </div>

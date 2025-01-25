@@ -1,0 +1,283 @@
+Option Compare Database
+
+Public lastControl As control
+Public selStart As Long
+
+
+' gets/returns the number of selected tag records and updates the text box in the form
+Private Function UpdateSelectedCount()
+    Dim count As Integer
+    count = GetSelectedCount
+    
+    Me.SelectedCount.Caption = count
+    UpdateSelectedCount = count
+End Function
+
+
+' Used to update search while user is typing (STILL WORKING)
+Private Sub UpdateSearch()
+    Dim activeControl As String
+    Dim tag As String
+    Dim Botanical As String
+    Dim Department As String
+    Dim selStart As Long
+    
+    activeControl = Me.activeControl.Name
+    selStart = Me.activeControl.selStart
+    
+    
+    If activeControl = TagNameSearchBox Then
+        tag = Me.TagNameSearchBox.Text
+    Else
+        tag = Nz(Me.TagNameSearchBox.Value, vbNullString)
+    End If
+    
+    
+    If activeControl = BotanicalNameSearchBox Then
+        Botanical = Me.BotanicalNameSearchBox.Text
+    Else
+        Botanical = Nz(Me.BotanicalNameSearchBox.Value, vbNullString)
+    End If
+    
+    
+    If activeControl = DepartmentCombo Then
+        Department = Me.DepartmentCombo.Text
+    Else
+        Department = Nz(Me.DepartmentCombo.Value, vbNullString)
+    End If
+    
+    
+    If Me.Dirty Then
+        Me.Dirty = False
+    End If
+    
+    
+    Call DoSearch(tag, Botanical, Department)
+           
+    Me(activeControl).SetFocus
+    Me(activeControl).selStart = selStart
+End Sub
+
+
+' updates the data filter based on user's search terms
+Private Sub DoSearch(tag As String, Botanical As String, Department As String)
+    Dim criteria As String
+    Dim tagNameCriteria As String
+    Dim botanicalNameCriteria As String
+    Dim departmentCriteria As String
+    Dim userInput As String
+    Dim userInputArray() As String
+    
+    ' user entered a tag name
+    If Not IsNull(tag) And Len(tag) <> 0 Then
+        userInput = ReduceSpaces(tag)                                                                           ' strip any extra spaces from the input
+        userInput = EscapeApostrophes(userInput)                                                                ' escape out any apostrophes in user input (i.e. ')
+        userInputArray = Split(userInput)                                                                       ' get an array of words from the input
+        For Each word In userInputArray                                                                         ' iterate through the list of words
+            If Len(tagNameCriteria) <> 0 Then tagNameCriteria = tagNameCriteria & " And "                       ' append an "And" if needed
+            tagNameCriteria = tagNameCriteria & "TagName Like '*" & word & "*'"                                 ' add the word to the criteria
+        Next
+    End If
+        
+    ' user entered a botanical name
+    If Not IsNull(Botanical) And Len(Botanical) <> 0 Then
+        userInput = ReduceSpaces(Botanical)                                                                     ' strip any extra spaces from the input
+        userInput = EscapeApostrophes(userInput)                                                                ' escape out any apostrophes in user input (i.e. ')
+        userInputArray = Split(userInput)                                                                       ' get an array of words from the input
+        For Each word In userInputArray                                                                         ' iterate through the list of words
+            If Len(botanicalNameCriteria) <> 0 Then botanicalNameCriteria = botanicalNameCriteria & " And "     ' append an "And" if needed
+            botanicalNameCriteria = botanicalNameCriteria & "Botanical Like '*" & word & "*'"                   ' add the word to the criteria
+        Next
+    End If
+    
+    ' user entered a department
+    If Not IsNull(Department) And Len(Department) <> 0 Then
+        departmentCriteria = "Department Like '" & Department & "'"                                             ' store the department name
+    End If
+    
+    
+    ' build the final filter criteria
+    criteria = tagNameCriteria                                                                                  ' add tag name
+    If Len(criteria) <> 0 And Len(botanicalNameCriteria) <> 0 Then criteria = criteria & " And "                ' append an "And" if needed
+    criteria = criteria & botanicalNameCriteria                                                                 ' add the botanical name
+    If Len(criteria) <> 0 And Len(departmentCriteria) <> 0 Then criteria = criteria & " And "                   ' append an "And" if needed
+    criteria = criteria & departmentCriteria                                                                    ' add the specified department
+        
+    Me.Filter = criteria
+    Me.FilterOn = True
+End Sub
+
+
+Private Sub ClearAllSelections()
+    Dim db As Database
+    Set db = CurrentDb
+    
+    Me.Requery
+    db.Execute ("UPDATE BenchTags SET BenchTags.Print = False;")
+    Me.Requery
+    Call UpdateSelectedCount
+    Me.TagNameSearchBox.SetFocus
+End Sub
+
+
+Private Sub ClearFilter()
+    Me.Filter = ""
+    Me.FilterOn = False
+    Me.PrintCheckbox.Visible = True
+End Sub
+
+
+Private Sub Form_Load()
+    Dim intCount As Integer
+    Dim intResponse As Integer
+    Dim strMessage As String
+    
+    intCount = UpdateSelectedCount
+    
+    ' reset the filter
+    Me.Filter = ""
+    
+    ' if the user didn't just click the 'cancel' button and there are selected items, ask user if they want to clear
+    If boolCancelClicked = False And intCount > 0 Then
+        strMessage = "There are " & intCount & " tags selected for printing. " _
+            & "Would you like to clear the selection before continuing?"
+        intResponse = MsgBox(strMessage, vbYesNo + vbQuestion, "Clear selection?")
+        
+        If intResponse = vbYes Then
+            Call ClearAllSelections
+        End If
+    End If
+    
+    ' reset the canceled flag
+    boolCancelClicked = False
+    
+    ' make sure the checkbox is visible (gets hidden during searching if no records are found)
+    Me.PrintCheckbox.Visible = True
+    
+    Me.TagNameSearchBox.SetFocus
+End Sub
+
+
+Private Sub TagNameSearchBox_Change()
+    selStart = Me.TagNameSearchBox.selStart
+End Sub
+
+
+Private Sub TagNameSearchBox_LostFocus()
+    Set lastControl = Me.TagNameSearchBox
+End Sub
+
+
+Private Sub BotanicalNameSearchBox_Change()
+    selStart = Me.BotanicalNameSearchBox.selStart
+End Sub
+
+
+Private Sub BotanicalNameSearchBox_LostFocus()
+    Set lastControl = Me.BotanicalNameSearchBox
+End Sub
+
+
+Private Sub DepartmentCombo_Change()
+    selStart = Me.DepartmentCombo.selStart
+End Sub
+
+
+Private Sub DepartmentCombo_LostFocus()
+    Set lastControl = Me.DepartmentCombo
+End Sub
+
+
+Private Sub SearchButton_Click()
+    Dim tag As String
+    Dim Botanical As String
+    Dim Department As String
+    
+    ' set up an error handler
+    On Error GoTo CleanFail
+    
+    Me.PrintCheckbox.Visible = True
+    
+    ' if all search boxes are empty, clear filter and do nothing further
+    If IsNull(Me.TagNameSearchBox) And IsNull(Me.BotanicalNameSearchBox) And IsNull(Me.DepartmentCombo) Then
+        Call ClearFilter
+        lastControl.SetFocus
+        Exit Sub
+    End If
+    
+    tag = Nz(Me.TagNameSearchBox, "")
+    Botanical = Nz(Me.BotanicalNameSearchBox, "")
+    Department = Nz(Me.DepartmentCombo, "")
+
+    ' get the form data and perform search
+    Call DoSearch(tag, Botanical, Department)
+    lastControl.SetFocus
+    lastControl.selStart = selStart
+    
+CleanExit:
+    Exit Sub
+    
+CleanFail:
+    If Err.Number = 2158 Then
+        Err.Clear
+        Resume CleanExit
+    End If
+End Sub
+
+
+Private Sub ClearSearchButton_Click()
+    Call ClearFilter
+
+    Me.TagNameSearchBox.Value = ""
+    Me.BotanicalNameSearchBox.Value = ""
+    Me.DepartmentCombo.Value = ""
+    Me.TagNameSearchBox.SetFocus
+End Sub
+
+
+Private Sub PrintCheckbox_Click()
+    DoCmd.RunCommand acCmdSaveRecord
+    UpdateSelectedCount
+End Sub
+
+
+Private Sub PrintButton_Click()
+    ' if there are no selected records, alert user
+    If GetSelectedCount = 0 Then
+        Dim strMessage As String
+        Dim intResponse As Integer
+        
+        strMessage = "Select the tag(s) you want to print before continuing."
+        intResponse = MsgBox(strMessage, vbOKOnly, "No tags selected")
+    Else
+        ' otherwise, open the form to set sign data
+    
+        DoCmd.Close acForm, Me.Name, acSaveNo
+        DoCmd.OpenForm "PrintBenchTagsData", acNormal, , "Print = True"
+    End If
+End Sub
+
+
+Private Sub SelectAllButton_Click()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+        
+    Me.Requery
+    db.Execute ("UPDATE BenchTags SET BenchTags.Print = True" & criteria)
+    Me.Requery
+    Call UpdateSelectedCount
+    Me.TagNameSearchBox.SetFocus
+    
+End Sub
+
+
+Private Sub ClearSelectionsButton_Click()
+    Call ClearAllSelections
+End Sub

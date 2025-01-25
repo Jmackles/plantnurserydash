@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
+import path from 'path';
 
 export async function GET() {
     try {
         const db = await open({
-            filename: './database.sqlite',
+            filename: path.join(process.cwd(), 'app/database/database.sqlite'), // Ensure this path is correct
             driver: sqlite3.Database
         });
         
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
         const { first_name, last_name, phone, email } = body;
         
         const db = await open({
-            filename: './database.sqlite',
+            filename: path.join(process.cwd(), 'app/database/database.sqlite'), // Ensure this path is correct
             driver: sqlite3.Database
         });
 

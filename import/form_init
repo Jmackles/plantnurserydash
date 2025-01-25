@@ -1,0 +1,12 @@
+Option Compare Database
+
+Private Sub Form_Load()
+    Call init
+End Sub
+
+
+Public Sub init()
+    boolCancelClicked = False
+    DoCmd.Close acForm, Me.Name, acSaveNo
+    DoCmd.OpenForm "PrintBenchTagsSelection", acNormal
+End Sub

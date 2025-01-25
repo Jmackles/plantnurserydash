@@ -1,0 +1,261 @@
+Option Compare Database
+
+
+Private Sub UpdatePotDescription()
+    Me.Size = GeneratePotDescription(Nz(Me.PotSizeUnit, ""), Nz(Me.PotSize, ""), Nz(Me.PotDepth, ""), Nz(Me.PotShape, ""), Nz(Me.PotType, ""), Nz(Me.PotCustomText, ""))
+End Sub
+
+
+Private Sub UpdateAllPotDescriptions()
+    Me.Requery
+    
+    ' cycle through the visible records and reset the preview field
+    DoCmd.GoToRecord , , acFirst                ' move to the first record
+    While Me.CurrentRecord < Me.Recordset.RecordCount
+        Call UpdatePotDescription
+        DoCmd.GoToRecord , , acNext             ' move to the next record
+    Wend
+    Call UpdatePotDescription                   ' update description for the last record
+    DoCmd.GoToRecord , , acFirst                ' move back to the first record
+    Me.Requery
+End Sub
+
+
+Private Sub ChangeAllPricesTextbox_AfterUpdate()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    Dim newText As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+    
+    newText = Nz(Me.ChangeAllPricesTextbox, "''")
+    db.Execute ("UPDATE BenchTags SET BenchTags.Price = " & newText & criteria)
+    Call UpdateAllPotDescriptions
+End Sub
+
+
+Private Sub ChangeAllSizesTextbox_AfterUpdate()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    Dim newText As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+    
+    newText = Nz(Me.ChangeAllSizesTextbox, "''")
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotSize = " & newText & criteria)
+    Call UpdateAllPotDescriptions
+End Sub
+
+
+Private Sub ChangeAllPotUnitsDropdown_AfterUpdate()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    Dim newText As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+    
+    newText = Nz(Me.ChangeAllPotUnitsDropdown, "''")
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotSizeUnit = '" & newText & "'" & criteria)
+    Call UpdateAllPotDescriptions
+End Sub
+
+
+Private Sub ChangeAllPotDepthsDropdown_AfterUpdate()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    Dim newText As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+    
+    newText = Nz(Me.ChangeAllPotDepthsDropdown, "''")
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotDepth = '" & newText & "'" & criteria)
+    Call UpdateAllPotDescriptions
+End Sub
+
+
+Private Sub ChangeAllPotShapesDropdown_AfterUpdate()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    Dim newText As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+    
+    newText = Nz(Me.ChangeAllPotShapesDropdown, "''")
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotShape = '" & newText & "'" & criteria)
+    Call UpdateAllPotDescriptions
+End Sub
+
+
+Private Sub ChangeAllPotTypesDropdown_AfterUpdate()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    Dim newText As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+    
+    newText = Nz(Me.ChangeAllPotTypesDropdown, "''")
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotType = '" & newText & "'" & criteria)
+    Call UpdateAllPotDescriptions
+End Sub
+
+
+Private Sub ChangeAllCustomTextTextbox_AfterUpdate()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    Dim newText As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+    
+    newText = Nz(Me.ChangeAllCustomTextTextbox, "''")
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotCustomText = '" & newText & "'" & criteria)
+    Call UpdateAllPotDescriptions
+End Sub
+
+
+Private Sub ClearInputButton_Click()
+    Dim db As Database
+    Set db = CurrentDb
+    Dim criteria As String
+    
+    If Me.FilterOn = True Then
+        criteria = " WHERE " & Me.Filter
+    Else
+        criteria = ""
+    End If
+    
+    db.Execute ("UPDATE BenchTags SET BenchTags.Price = ''" & criteria)
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotSize = ''" & criteria)
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotSizeUnit = ''" & criteria)
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotDepth = ''" & criteria)
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotShape = ''" & criteria)
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotType = ''" & criteria)
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotCustomText = ''" & criteria)
+    db.Execute ("UPDATE BenchTags SET BenchTags.PotSize = ''" & criteria)
+    db.Execute ("UPDATE BenchTags SET BenchTags.FlatPrice = ''" & criteria)
+    
+    Me.ChangeAllCustomTextTextbox = ""
+    Me.ChangeAllPotDepthsDropdown = ""
+    Me.ChangeAllPotShapesDropdown = ""
+    Me.ChangeAllPotTypesDropdown = ""
+    Me.ChangeAllPotUnitsDropdown = ""
+    Me.ChangeAllPricesTextbox = ""
+    Me.ChangeAllSizesTextbox = ""
+    
+    
+    Call UpdateAllPotDescriptions
+End Sub
+
+Private Sub Form_KeyPress(KeyAscii As Integer)
+    ' detect if the user pressed enter and check to make sure we aren't at the last record
+    If KeyAscii = 13 And Me.CurrentRecord < Me.Recordset.RecordCount Then
+        DoCmd.GoToRecord , , acNext             ' move to the next record
+        Me.Price.SetFocus                       ' change cursor focus to the price field
+    End If
+End Sub
+
+Private Sub Form_Load()
+    Me.Price.SetFocus
+End Sub
+
+
+Private Sub PotSize_AfterUpdate()
+    Call UpdatePotDescription
+End Sub
+
+
+Private Sub PotSizeUnit_AfterUpdate()
+    If Me.PotSizeUnit = "#" Then
+        Me.PotType = "Size"
+    ElseIf Me.PotSizeUnit = """" Then
+        Me.PotType = "Pot"
+    End If
+    
+    Call UpdatePotDescription
+End Sub
+
+
+Private Sub PotDepth_AfterUpdate()
+    Call UpdatePotDescription
+End Sub
+
+
+Private Sub PotShape_AfterUpdate()
+    Call UpdatePotDescription
+End Sub
+
+
+Private Sub PotType_AfterUpdate()
+    Call UpdatePotDescription
+End Sub
+
+
+Private Sub PotCustomText_AfterUpdate()
+    Call UpdatePotDescription
+End Sub
+
+
+Private Sub PreviewButton_Click()
+    ' DoCmd.Close acForm, Me.Name, acSaveNo
+    ' DoCmd.OpenForm "PreviewBenchTags", acNormal, , "Print = True"
+    DoCmd.RunCommand acCmdSaveRecord
+    DoCmd.OpenReport "ShrubyardBenchTags", acViewPreview, , "Print = True"
+End Sub
+
+
+Private Sub CancelButton_Click()
+    ' set the canceled flag to true
+    boolCancelClicked = True
+    
+    DoCmd.Close acForm, Me.Name, acSaveNo
+    DoCmd.OpenForm "PrintBenchTagsSelection", acNormal
+End Sub
+
+
+Private Sub StartOverButton_Click()
+    ' set the canceled flag to false
+    boolCancelClicked = False
+    
+    DoCmd.Close acForm, Me.Name, acSaveNo
+    DoCmd.OpenForm "PrintBenchTagsSelection", acNormal
+End Sub
+
+
+Private Sub RemoveTagButton_Click()
+    Me.[Print] = False
+    Me.Requery
+End Sub

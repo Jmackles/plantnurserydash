@@ -5,6 +5,22 @@ import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 
+let db: sqlite3.Database | null = null;
+
+async function getDbConnection() {
+    if (!db) {
+        db = await open({
+            filename: path.join(process.cwd(), 'app/database/database.sqlite'),
+            driver: sqlite3.Database
+        });
+        await db.run('PRAGMA journaling_mode = WAL');
+        await db.run('CREATE INDEX IF NOT EXISTS idx_BenchTags_ID ON BenchTags (ID)');
+        await db.run('CREATE INDEX IF NOT EXISTS idx_BenchTags_TagName ON BenchTags (TagName)');
+        await db.run('CREATE INDEX IF NOT EXISTS idx_BenchTagImages_TagName ON [BenchTag Images] (TagName)');
+    }
+    return db;
+}
+
 export async function GET(req: NextRequest) {
     try {
         const url = new URL(req.url);
@@ -12,10 +28,7 @@ export async function GET(req: NextRequest) {
         const limit = parseInt(url.searchParams.get('limit') || '10', 10);
         const offset = (page - 1) * limit;
 
-        const db = await open({
-            filename: path.join(process.cwd(), 'app/database/database.sqlite'),
-            driver: sqlite3.Database
-        });
+        const db = await getDbConnection();
 
         // Get total count
         const [{ total }] = await db.all<{ total: number }>('SELECT COUNT(*) as total FROM BenchTags');
@@ -29,6 +42,9 @@ export async function GET(req: NextRequest) {
             LIMIT ? OFFSET ?
         `, [limit, offset]);
 
+        // Debug logs
+        console.log(`Pagination Debug => page=${page}, limit=${limit}, offset=${offset}, total=${total}, plants.length=${plants?.length}`);
+
         // Generate image URLs
         const plantsWithImageUrls = plants.map(plant => {
             if (plant.Image) {
@@ -36,8 +52,6 @@ export async function GET(req: NextRequest) {
             }
             return plant;
         });
-
-        await db.close();
 
         return NextResponse.json({
             data: plantsWithImageUrls,

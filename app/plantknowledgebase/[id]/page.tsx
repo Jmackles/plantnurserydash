@@ -6,6 +6,7 @@ import { BenchTags } from '../../lib/types';
 const PlantDetails = () => {
     const { id } = useParams();
     const [plant, setPlant] = useState<BenchTags | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const translateValue = (value: boolean | undefined) => {
         if (value === undefined) return 'N/A';
@@ -14,6 +15,7 @@ const PlantDetails = () => {
 
     useEffect(() => {
         const fetchPlant = async () => {
+            setLoading(true);
             try {
                 const response = await fetch(`/api/knowledgebase/access/${id}`);
                 if (!response.ok) {
@@ -23,14 +25,20 @@ const PlantDetails = () => {
                 setPlant(data);
             } catch (error) {
                 console.error('Error fetching plant:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchPlant();
     }, [id]);
 
-    if (!plant) {
+    if (loading) {
         return <div>Loading...</div>;
+    }
+
+    if (!plant) {
+        return <div>Plant not found</div>;
     }
 
     return (

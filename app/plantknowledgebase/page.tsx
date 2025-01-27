@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import SearchFilterPanel from '../components/shared/SearchFilterPanel';
 import PlantCard from '../components/cards/PlantCard';
@@ -13,6 +13,7 @@ const PlantKnowledgeBase = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [sortField, setSortField] = useState<'TagName' | 'Botanical'>('TagName');
     const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
     const itemsPerPage = 10;
 
     const translateBooleanValue = (value: boolean | null) => {
@@ -22,6 +23,7 @@ const PlantKnowledgeBase = () => {
 
     useEffect(() => {
         const fetchPlants = async () => {
+            setLoading(true);
             try {
                 const response = await fetch(`/api/knowledgebase?page=${currentPage}&limit=${itemsPerPage}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -29,6 +31,7 @@ const PlantKnowledgeBase = () => {
                 
                 // Validate data before setting state
                 if (Array.isArray(result.data)) {
+                    console.log(`Page ${currentPage} server response:`, result.data);
                     setPlants(result.data);
                     setTotalPages(result.pagination.totalPages);
                 } else {
@@ -37,30 +40,33 @@ const PlantKnowledgeBase = () => {
             } catch (error) {
                 console.error('Error fetching plants:', error);
                 setPlants([]);
+            } finally {
+                setLoading(false);
             }
         };
 
+        console.log('Current searchQuery:', searchQuery, 'Current filter:', filter, 'Page:', currentPage);
         fetchPlants();
     }, [currentPage, itemsPerPage]);
 
-    const filteredPlants = plants
-        .filter((plant) => {
-            const matchesSearchQuery = 
-                (plant.TagName ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (plant.Botanical ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (plant.Department ?? '').toLowerCase().includes(searchQuery.toLowerCase());
+    const filteredPlants = useMemo(() => {
+        return plants
+            .filter((plant) => {
+                const matchesSearchQuery = 
+                    (plant.TagName ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (plant.Botanical ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    (plant.Department ?? '').toLowerCase().includes(searchQuery.toLowerCase());
 
-            const matchesFilter = filter === '' || (plant.Department ?? '').toLowerCase() === filter.toLowerCase();
+                const matchesFilter = filter === '' || (plant.Department ?? '').toLowerCase() === filter.toLowerCase();
 
-            return matchesSearchQuery && matchesFilter;
-        })
-        .sort((a, b) => {
-            const aVal = a[sortField] || '';
-            const bVal = b[sortField] || '';
-            return aVal.localeCompare(bVal);
-        });
-
-    const paginatedPlants = filteredPlants.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                return matchesSearchQuery && matchesFilter;
+            })
+            .sort((a, b) => {
+                const aVal = a[sortField] || '';
+                const bVal = b[sortField] || '';
+                return aVal.localeCompare(bVal);
+            });
+    }, [plants, searchQuery, filter, sortField]);
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
@@ -84,9 +90,13 @@ const PlantKnowledgeBase = () => {
                     </select>
                 </div>
             </div>
-            {viewMode === 'card' ? (
+            {loading ? (
+                <div>Loading...</div>
+            ) : filteredPlants.length === 0 ? (
+                <div>No data found for page {currentPage}</div>
+            ) : viewMode === 'card' ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    {paginatedPlants.map((plant, index) => (
+                    {filteredPlants.map((plant, index) => (
                         <PlantCard key={plant.ID || index} plant={plant} />
                     ))}
                 </div>
@@ -112,7 +122,7 @@ const PlantKnowledgeBase = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedPlants.map((plant, index) => (
+                            {filteredPlants.map((plant, index) => (
                                 <tr key={plant.ID || index} className="cursor-pointer hover:bg-gray-50" 
                                     onClick={() => window.location.href = `/plantknowledgebase/${plant.ID}`}>
                                     <td className="py-2 px-4 border-b">

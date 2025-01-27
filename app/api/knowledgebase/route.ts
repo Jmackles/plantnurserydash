@@ -80,27 +80,35 @@ export async function GET(req: NextRequest) {
 
         // Get filtered and paginated data
         const plants = await db.all(`
-            SELECT BenchTags.*, [BenchTag Images].Image
+            SELECT BenchTags.*
             FROM BenchTags
-            LEFT JOIN [BenchTag Images] ON BenchTags.TagName = [BenchTag Images].TagName
             WHERE ${whereClause}
             ORDER BY ${sortField} COLLATE NOCASE
             LIMIT ? OFFSET ?
         `, [...params, limit, offset]);
 
+        // Process images correctly
+        const plantsWithImages = await Promise.all(plants.map(async (plant) => {
+            if (plant.Image) {
+                try {
+                    // Convert binary data to base64
+                    const buffer = Buffer.from(plant.Image);
+                    plant.ImageUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+                } catch (error) {
+                    console.error(`Error processing image for plant ${plant.ID}:`, error);
+                    plant.ImageUrl = null;
+                }
+            }
+            // Remove the raw image data from the response
+            delete plant.Image;
+            return plant;
+        }));
+
         // Debug logs
         console.log(`Pagination Debug => page=${page}, limit=${limit}, offset=${offset}, total=${total}, plants.length=${plants?.length}`);
 
-        // Generate image URLs
-        const plantsWithImageUrls = plants.map(plant => {
-            if (plant.Image) {
-                plant.ImageUrl = `/api/knowledgebase/image/${plant.ID}`;
-            }
-            return plant;
-        });
-
         return NextResponse.json({
-            data: plantsWithImageUrls,
+            data: plantsWithImages,
             pagination: {
                 total,
                 page,

@@ -34,7 +34,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         `, id);
 
         if (plant && plant.Image) {
-            plant.ImageUrl = `/api/knowledgebase/image/${plant.ID}`;
+            try {
+                // Convert binary data to base64
+                const buffer = Buffer.from(plant.Image);
+                plant.ImageUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+            } catch (error) {
+                console.error(`Error processing image for plant ${plant.ID}:`, error);
+                plant.ImageUrl = null;
+            }
         }
 
         if (!plant) {

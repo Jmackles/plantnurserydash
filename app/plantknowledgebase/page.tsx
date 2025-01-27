@@ -7,14 +7,11 @@ import { BenchTags, KnowledgeBaseResponse } from '../lib/types';
 
 const PlantKnowledgeBase = () => {
     const [plants, setPlants] = useState<BenchTags[]>([]);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filter, setFilter] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'card'>('card');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortField, setSortField] = useState<'TagName' | 'Botanical'>('TagName');
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
-    const itemsPerPage = 10;
     const [filters, setFilters] = useState<FilterState>({
         sunExposure: [],
         foliageType: [],
@@ -25,27 +22,32 @@ const PlantKnowledgeBase = () => {
         searchQuery: ''
     });
 
+    const itemsPerPage = 10;
+
     const translateBooleanValue = (value: boolean | null) => {
         if (value === null) return 'N/A';
         return value ? 'Yes' : 'No';
     };
 
     useEffect(() => {
+        let mounted = true;
+
         const fetchPlants = async () => {
+            if (!mounted) return;
             setLoading(true);
+            
             try {
-                // Build URL with filter parameters
                 const params = new URLSearchParams({
                     page: currentPage.toString(),
                     limit: itemsPerPage.toString(),
+                    sort: sortField
                 });
 
-                // Add search query if present
+                // Add filters to params
                 if (filters.searchQuery) {
                     params.append('search', filters.searchQuery);
                 }
 
-                // Add array parameters
                 filters.sunExposure.forEach(value => 
                     params.append('sunExposure[]', value));
                 filters.departments.forEach(value => 
@@ -53,32 +55,34 @@ const PlantKnowledgeBase = () => {
                 filters.foliageType.forEach(value => 
                     params.append('foliageType[]', value));
 
-                params.append('sort', sortField);
-
                 const response = await fetch(`/api/knowledgebase?${params}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
                 const result: KnowledgeBaseResponse = await response.json();
                 
-                // Validate data before setting state
-                if (Array.isArray(result.data)) {
-                    console.log(`Page ${currentPage} server response:`, result.data);
-                    setPlants(result.data);
-                    setTotalPages(result.pagination.totalPages);
-                } else {
-                    throw new Error('Invalid data format received');
+                if (mounted) {
+                    if (Array.isArray(result.data)) {
+                        setPlants(result.data);
+                        setTotalPages(result.pagination.totalPages);
+                    } else {
+                        throw new Error('Invalid data format received');
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching plants:', error);
-                setPlants([]);
+                if (mounted) setPlants([]);
             } finally {
-                setLoading(false);
+                if (mounted) setLoading(false);
             }
         };
 
         fetchPlants();
-    }, [currentPage, itemsPerPage, filters, sortField]); // Add filters to dependencies
 
-    // Remove client-side filtering since it's now handled by the server
+        return () => {
+            mounted = false;
+        };
+    }, [currentPage, sortField, filters]);
+
     const displayPlants = plants;
 
     return (

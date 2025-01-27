@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { BenchTags } from '../../lib/types';
 
@@ -33,87 +33,105 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         return price.startsWith('$') ? price : `$${price}`;
     };
 
+    const [imageError, setImageError] = useState(false);
+
     return (
         <Link href={`/plantknowledgebase/${plant.ID}`}>
             <div className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-sage-100 hover:border-sage-300">
-                {plant.ImageUrl && (
+                {plant.ImageUrl && !imageError ? (
                     <div className="relative h-56 overflow-hidden bg-sage-50">
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
                         <img 
                             src={plant.ImageUrl}
                             alt={plant.TagName || ''}
                             className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                            onError={() => setImageError(true)}
                         />
+                        {/* Plant Status Badges */}
+                        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+                            {plant.Winterizing && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                                    {plant.Winterizing}
+                                </span>
+                            )}
+                            {plant.Classification && (
+                                <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+                                    {plant.Classification}
+                                </span>
+                            )}
+                        </div>
+                        {/* Icons */}
                         <div className="absolute bottom-2 right-2 z-20 flex gap-1">
                             {getNativeIcon()}
                             {getDeerResistantIcon()}
                         </div>
                     </div>
+                ) : (
+                    <div className="h-56 bg-sage-50 flex items-center justify-center">
+                        <span className="text-sage-400">No Image Available</span>
+                    </div>
                 )}
-                <div className="p-5">
-                    <div className="mb-3 border-b border-sage-100 pb-3">
-                        <h3 className="text-xl font-semibold text-sage-800 mb-1 line-clamp-2 group-hover:text-sage-600 transition-colors">
+                
+                <div className="p-5 space-y-4">
+                    {/* Title Section */}
+                    <div className="border-b border-sage-100 pb-3">
+                        <h3 className="text-xl font-semibold text-sage-800 mb-1 line-clamp-2">
                             {plant.TagName}
                         </h3>
-                        <p className="text-sm text-sage-600 italic line-clamp-1">
+                        <p className="text-sm text-sage-600 italic">
                             {plant.Botanical}
                         </p>
                     </div>
 
-                    <div className="space-y-3">
-                        {/* Sun & Growth Info */}
-                        <div className="flex items-center justify-between text-lg">
-                            <span className="tracking-wide">{getSunExposure()}</span>
-                            <span title={`Growth Rate: ${plant.GrowthRate}`}>
-                                {getGrowthRateIcon(plant.GrowthRate)}
-                            </span>
+                    {/* Main Info Grid */}
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                        {/* Growing Conditions */}
+                        <div className="col-span-2 flex items-center justify-between">
+                            <span>{getSunExposure()}</span>
+                            <span title={plant.GrowthRate}>{getGrowthRateIcon(plant.GrowthRate)}</span>
                         </div>
-
-                        {/* Growing Info */}
-                        <div className="flex flex-wrap gap-2">
+                        
+                        {/* Department & Zones */}
+                        <div className="col-span-2 flex flex-wrap gap-2">
                             {plant.Department && (
-                                <span className="bg-gradient-to-r from-sage-50 to-sage-100 text-sage-700 px-3 py-1 rounded-full text-xs font-medium">
+                                <span className="bg-sage-50 text-sage-700 px-2 py-1 rounded-full text-xs">
                                     {plant.Department}
                                 </span>
                             )}
                             {plant.ZoneMin && plant.ZoneMax && (
-                                <span className="bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-medium">
+                                <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded-full text-xs">
                                     Zone {plant.ZoneMin}-{plant.ZoneMax}
                                 </span>
                             )}
                         </div>
 
-                        {/* Size Details */}
-                        <div className="grid grid-cols-2 gap-2 text-sm text-sage-700">
-                            {plant.MatureSize && (
-                                <p className="col-span-2 flex items-center gap-1">
-                                    <span className="text-sage-400">📏</span>
-                                    {plant.MatureSize}
-                                </p>
-                            )}
-                            <div className="col-span-2 flex justify-between items-center mt-1">
-                                {plant.Size && (
-                                    <span className="text-sage-600 text-sm">
-                                        Current: {plant.Size}
-                                    </span>
-                                )}
-                                {plant.PotSize && (
-                                    <span className="text-sage-600 text-sm">
-                                        {plant.PotSize}{plant.PotSizeUnit}
-                                    </span>
-                                )}
+                        {/* Sizes */}
+                        {plant.MatureSize && (
+                            <div className="col-span-2 text-sage-700">
+                                <span className="font-medium">Mature Size:</span> {plant.MatureSize}
                             </div>
-                        </div>
+                        )}
+                        
+                        {/* Notes Preview */}
+                        {plant.Notes && (
+                            <div className="col-span-2 text-sage-600 line-clamp-2 text-xs italic">
+                                {plant.Notes}
+                            </div>
+                        )}
 
-                        {/* Price */}
-                        {plant.Price && (
-                            <div className="flex justify-between items-center pt-2 border-t border-sage-100 mt-2">
-                                <span className="text-sage-600 text-sm">Price</span>
+                        {/* Price & Size Info */}
+                        <div className="col-span-2 flex justify-between items-center pt-2 border-t border-sage-100">
+                            {plant.Price && (
                                 <span className="text-lg font-semibold text-sage-700">
                                     {formatPrice(plant.Price)}
                                 </span>
-                            </div>
-                        )}
+                            )}
+                            {plant.Size && (
+                                <span className="text-sage-600 text-sm">
+                                    Size: {plant.Size}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -15,6 +15,15 @@ const PlantKnowledgeBase = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const itemsPerPage = 10;
+    const [filters, setFilters] = useState<FilterState>({
+        sunExposure: [],
+        foliageType: [],
+        lifespan: [],
+        zones: [],
+        departments: [],
+        botanicalNames: [],
+        searchQuery: ''
+    });
 
     const translateBooleanValue = (value: boolean | null) => {
         if (value === null) return 'N/A';
@@ -25,7 +34,28 @@ const PlantKnowledgeBase = () => {
         const fetchPlants = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`/api/knowledgebase?page=${currentPage}&limit=${itemsPerPage}`);
+                // Build URL with filter parameters
+                const params = new URLSearchParams({
+                    page: currentPage.toString(),
+                    limit: itemsPerPage.toString(),
+                });
+
+                // Add search query if present
+                if (filters.searchQuery) {
+                    params.append('search', filters.searchQuery);
+                }
+
+                // Add array parameters
+                filters.sunExposure.forEach(value => 
+                    params.append('sunExposure[]', value));
+                filters.departments.forEach(value => 
+                    params.append('departments[]', value));
+                filters.foliageType.forEach(value => 
+                    params.append('foliageType[]', value));
+
+                params.append('sort', sortField);
+
+                const response = await fetch(`/api/knowledgebase?${params}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const result: KnowledgeBaseResponse = await response.json();
                 
@@ -45,59 +75,40 @@ const PlantKnowledgeBase = () => {
             }
         };
 
-        console.log('Current searchQuery:', searchQuery, 'Current filter:', filter, 'Page:', currentPage);
         fetchPlants();
-    }, [currentPage, itemsPerPage]);
+    }, [currentPage, itemsPerPage, filters, sortField]); // Add filters to dependencies
 
-    const filteredPlants = useMemo(() => {
-        return plants
-            .filter((plant) => {
-                const matchesSearchQuery = 
-                    (plant.TagName ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (plant.Botanical ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (plant.Department ?? '').toLowerCase().includes(searchQuery.toLowerCase());
-
-                const matchesFilter = filter === '' || (plant.Department ?? '').toLowerCase() === filter.toLowerCase();
-
-                return matchesSearchQuery && matchesFilter;
-            })
-            .sort((a, b) => {
-                const aVal = a[sortField] || '';
-                const bVal = b[sortField] || '';
-                return aVal.localeCompare(bVal);
-            });
-    }, [plants, searchQuery, filter, sortField]);
+    // Remove client-side filtering since it's now handled by the server
+    const displayPlants = plants;
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-sage-700 mb-8">Plant Knowledge Base</h1>
             <SearchFilterPanel
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                filter={filter}
-                setFilter={setFilter}
+                filters={filters}
+                setFilters={setFilters}
             />
-            <div className="flex justify-between mb-4">
+            <div className="sticky top-0 z-10 bg-white py-3 border-b mb-4 flex justify-between">
                 <div>
-                    <button onClick={() => setViewMode('list')} className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}>List View</button>
-                    <button onClick={() => setViewMode('card')} className={`btn ${viewMode === 'card' ? 'btn-primary' : 'btn-secondary'} ml-2`}>Card View</button>
+                    <label className="mr-2">Sort by:</label>
+                    <select value={sortField} onChange={(e) => setSortField(e.target.value as typeof sortField)}>
+                        <option value="TagName">TagName</option>
+                        <option value="Botanical">Botanical</option>
+                    </select>
                 </div>
                 <div>
-                    <label className="form-label">Sort by:</label>
-                    <select value={sortField} onChange={(e) => setSortField(e.target.value as 'TagName' | 'Botanical')} className="input-field">
-                        <option value="TagName">Tag Name</option>
-                        <option value="Botanical">Botanical Name</option>
-                    </select>
+                    <button onClick={() => setViewMode('list')}>List</button>
+                    <button onClick={() => setViewMode('card')} className="ml-2">Card</button>
                 </div>
             </div>
             {loading ? (
                 <div>Loading...</div>
-            ) : filteredPlants.length === 0 ? (
+            ) : displayPlants.length === 0 ? (
                 <div>No data found for page {currentPage}</div>
             ) : viewMode === 'card' ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    {filteredPlants.map((plant, index) => (
-                        <PlantCard key={plant.ID || index} plant={plant} />
+                    {displayPlants.map((plant) => (
+                        <PlantCard key={plant.ID} plant={plant} />
                     ))}
                 </div>
             ) : (
@@ -122,8 +133,8 @@ const PlantKnowledgeBase = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredPlants.map((plant, index) => (
-                                <tr key={plant.ID || index} className="cursor-pointer hover:bg-gray-50" 
+                            {displayPlants.map((plant) => (
+                                <tr key={plant.ID} className="cursor-pointer hover:bg-gray-50" 
                                     onClick={() => window.location.href = `/plantknowledgebase/${plant.ID}`}>
                                     <td className="py-2 px-4 border-b">
                                         {plant.ImageUrl && (
@@ -159,22 +170,47 @@ const PlantKnowledgeBase = () => {
                     </table>
                 </div>
             )}
-            <div className="flex justify-between mt-4">
+            <div className="sticky bottom-0 bg-white py-3 border-t flex flex-col items-center">
+                {/* scroll to top button */}
                 <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="btn btn-secondary"
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="btn btn-secondary mb-2"
                 >
-                    Previous
+                    Scroll to Top
                 </button>
-                <span>Page {currentPage} of {totalPages}</span>
-                <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="btn btn-secondary"
-                >
-                    Next
-                </button>
+
+                <div className="flex items-center space-x-1">
+                    {/* first page */}
+                    {currentPage > 1 && (
+                        <>
+                            <button onClick={() => setCurrentPage(1)}>First</button>
+                            <button onClick={() => setCurrentPage(currentPage - 1)}>Prev</button>
+                        </>
+                    )}
+                    {/* page links */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => Math.abs(p - currentPage) < 5 || p === 1 || p === totalPages)
+                        .map((p, idx, arr) => (
+                            <React.Fragment key={p}>
+                                {/* "..." ellipses */}
+                                {idx > 0 && p - (arr[idx - 1]) > 1 && <span>...</span>}
+                                <button
+                                    onClick={() => setCurrentPage(p)}
+                                    className={p === currentPage ? 'font-bold' : ''}
+                                >
+                                    {p}
+                                </button>
+                            </React.Fragment>
+                        ))
+                    }
+                    {/* next page */}
+                    {currentPage < totalPages && (
+                        <>
+                            <button onClick={() => setCurrentPage(currentPage + 1)}>Next</button>
+                            <button onClick={() => setCurrentPage(totalPages)}>Last</button>
+                        </>
+                    )}
+                </div>
             </div>
         </main>
     );

@@ -27,20 +27,66 @@ export async function GET(req: NextRequest) {
         const page = parseInt(url.searchParams.get('page') || '1', 10);
         const limit = parseInt(url.searchParams.get('limit') || '10', 10);
         const offset = (page - 1) * limit;
+        
+        // Get filter parameters
+        const searchQuery = url.searchParams.get('search') || '';
+        const sunExposure = url.searchParams.getAll('sunExposure[]');
+        const foliageType = url.searchParams.getAll('foliageType[]');
+        const departments = url.searchParams.getAll('departments[]');
+        const lifespan = url.searchParams.getAll('lifespan[]');
+        const sortField = url.searchParams.get('sort') || 'TagName';
 
         const db = await getDbConnection();
 
-        // Get total count
-        const [{ total }] = await db.all<{ total: number }>('SELECT COUNT(*) as total FROM BenchTags');
+        // Build dynamic WHERE clause
+        let whereConditions = ['1=1'];
+        let params: any[] = [];
 
-        // Get paginated data
+        if (searchQuery) {
+            whereConditions.push('(TagName LIKE ? OR Botanical LIKE ?)');
+            params.push(`%${searchQuery}%`, `%${searchQuery}%`);
+        }
+
+        if (sunExposure.length > 0) {
+            const sunConditions = [];
+            if (sunExposure.includes('Full Sun')) sunConditions.push('FullSun = 1');
+            if (sunExposure.includes('Part Sun')) sunConditions.push('PartSun = 1');
+            if (sunExposure.includes('Shade')) sunConditions.push('Shade = 1');
+            if (sunConditions.length > 0) {
+                whereConditions.push(`(${sunConditions.join(' OR ')})`);
+            }
+        }
+
+        if (departments.length > 0) {
+            whereConditions.push(`Department IN (${departments.map(() => '?').join(',')})`);
+            params.push(...departments);
+        }
+
+        if (foliageType.length > 0) {
+            whereConditions.push(`FoliageType IN (${foliageType.map(() => '?').join(',')})`);
+            params.push(...foliageType);
+        }
+
+        // Build and execute queries
+        const whereClause = whereConditions.join(' AND ');
+        
+        // Get total count with filters
+        const [{ total }] = await db.all<{ total: number }>(
+            `SELECT COUNT(*) as total 
+             FROM BenchTags 
+             WHERE ${whereClause}`, 
+            params
+        );
+
+        // Get filtered and paginated data
         const plants = await db.all(`
             SELECT BenchTags.*, [BenchTag Images].Image
             FROM BenchTags
             LEFT JOIN [BenchTag Images] ON BenchTags.TagName = [BenchTag Images].TagName
-            ORDER BY TagName
+            WHERE ${whereClause}
+            ORDER BY ${sortField} COLLATE NOCASE
             LIMIT ? OFFSET ?
-        `, [limit, offset]);
+        `, [...params, limit, offset]);
 
         // Debug logs
         console.log(`Pagination Debug => page=${page}, limit=${limit}, offset=${offset}, total=${total}, plants.length=${plants?.length}`);

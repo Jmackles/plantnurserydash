@@ -98,6 +98,8 @@ export async function GET(req: NextRequest) {
                     console.error(`Error processing image for plant ${plant.ID}:`, error);
                     plant.ImageUrl = null;
                 }
+            } else {
+                plant.ImageUrl = null;
             }
             // Remove the raw image data from the response
             delete plant.Image;

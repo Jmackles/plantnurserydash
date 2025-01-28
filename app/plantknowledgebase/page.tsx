@@ -4,6 +4,8 @@ import Image from 'next/image';
 import SearchFilterPanel from '../components/shared/SearchFilterPanel';
 import PlantCard from '../components/cards/PlantCard';
 import { BenchTags, KnowledgeBaseResponse } from '../lib/types';
+import { useToast } from '../hooks/useToast'; // Create this custom hook
+import { LoadingSpinner } from '../components/shared/LoadingSpinner'; // Create this component
 
 const PlantKnowledgeBase = () => {
     const [plants, setPlants] = useState<BenchTags[]>([]);
@@ -21,6 +23,8 @@ const PlantKnowledgeBase = () => {
         botanicalNames: [],
         searchQuery: ''
     });
+    const { showToast } = useToast();
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
 
     const itemsPerPage = 10;
 
@@ -29,12 +33,15 @@ const PlantKnowledgeBase = () => {
         return value ? 'Yes' : 'No';
     };
 
+    const fallbackImageUrl = '/plantimage.jpg';
+
     useEffect(() => {
         let mounted = true;
 
         const fetchPlants = async () => {
             if (!mounted) return;
             setLoading(true);
+            setIsLoadingMore(true);
             
             try {
                 const params = new URLSearchParams({
@@ -70,9 +77,13 @@ const PlantKnowledgeBase = () => {
                 }
             } catch (error) {
                 console.error('Error fetching plants:', error);
+                showToast('Error loading plants. Please try again.', 'error');
                 if (mounted) setPlants([]);
             } finally {
-                if (mounted) setLoading(false);
+                if (mounted) {
+                    setLoading(false);
+                    setIsLoadingMore(false);
+                }
             }
         };
 
@@ -83,7 +94,28 @@ const PlantKnowledgeBase = () => {
         };
     }, [currentPage, sortField, filters]);
 
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowLeft' && currentPage > 1) {
+                setCurrentPage(prev => prev - 1);
+            } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
+                setCurrentPage(prev => prev + 1);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [currentPage, totalPages]);
+
     const displayPlants = plants;
+
+    const LoadingSkeleton = () => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+                <div key={i} className="loading-skeleton h-64 rounded-lg"></div>
+            ))}
+        </div>
+    );
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
@@ -92,23 +124,45 @@ const PlantKnowledgeBase = () => {
                 filters={filters}
                 setFilters={setFilters}
             />
-            <div className="sticky top-0 z-10 bg-white py-3 border-b mb-4 flex justify-between">
-                <div>
+            <div className="sticky top-0 z-10 bg-white py-3 border-b mb-4 flex justify-between items-center">
+                <div className="flex items-center">
                     <label className="mr-2">Sort by:</label>
-                    <select value={sortField} onChange={(e) => setSortField(e.target.value as typeof sortField)}>
+                    <select 
+                        value={sortField} 
+                        onChange={(e) => setSortField(e.target.value as typeof sortField)}
+                        className="border rounded p-1"
+                    >
                         <option value="TagName">TagName</option>
                         <option value="Botanical">Botanical</option>
                     </select>
                 </div>
-                <div>
-                    <button onClick={() => setViewMode('list')}>List</button>
-                    <button onClick={() => setViewMode('card')} className="ml-2">Card</button>
+                <div className="flex items-center">
+                    <button 
+                        onClick={() => setViewMode('list')}
+                        className={`px-4 py-2 ${viewMode === 'list' ? 'bg-sage-700 text-white' : 'bg-gray-200'}`}
+                    >
+                        List
+                    </button>
+                    <button 
+                        onClick={() => setViewMode('card')} 
+                        className={`ml-2 px-4 py-2 ${viewMode === 'card' ? 'bg-sage-700 text-white' : 'bg-gray-200'}`}
+                    >
+                        Card
+                    </button>
                 </div>
             </div>
             {loading ? (
-                <div>Loading...</div>
+                <LoadingSkeleton />
             ) : displayPlants.length === 0 ? (
-                <div>No data found for page {currentPage}</div>
+                <div className="text-center py-8 text-gray-500">
+                    <p className="text-xl">No plants found</p>
+                    <button 
+                        onClick={() => setFilters({ ...filters, searchQuery: '' })}
+                        className="mt-4 text-sage-600 hover:text-sage-700"
+                    >
+                        Clear filters
+                    </button>
+                </div>
             ) : viewMode === 'card' ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                     {displayPlants.map((plant) => (
@@ -141,10 +195,19 @@ const PlantKnowledgeBase = () => {
                                 <tr key={plant.ID} className="cursor-pointer hover:bg-gray-50" 
                                     onClick={() => window.location.href = `/plantknowledgebase/${plant.ID}`}>
                                     <td className="py-2 px-4 border-b">
-                                        {plant.ImageUrl && (
+                                        {plant.ImageUrl ? (
                                             <img 
                                                 src={plant.ImageUrl}
                                                 alt={plant.TagName || ''}
+                                                width={128}
+                                                height={128}
+                                                className="object-cover"
+                                                onError={(e) => e.currentTarget.src = fallbackImageUrl}
+                                            />
+                                        ) : (
+                                            <img 
+                                                src={fallbackImageUrl}
+                                                alt="Fallback Image"
                                                 width={128}
                                                 height={128}
                                                 className="object-cover"
@@ -174,20 +237,27 @@ const PlantKnowledgeBase = () => {
                     </table>
                 </div>
             )}
-            <div className="sticky bottom-0 bg-white py-3 border-t flex flex-col items-center">
+            <div className="sticky bottom-0 bg-white/80 backdrop-blur-sm py-3 border-t 
+                          flex flex-col items-center transition-all duration-300">
                 {/* scroll to top button */}
                 <button
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                    className="btn btn-secondary mb-2"
+                    className="btn-secondary mb-2 hover:scale-105 transition-transform"
                 >
-                    Scroll to Top
+                    ↑ Scroll to Top
                 </button>
 
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center space-x-2">
                     {/* first page */}
                     {currentPage > 1 && (
                         <>
-                            <button onClick={() => setCurrentPage(1)}>First</button>
+                            <button 
+                                onClick={() => setCurrentPage(1)}
+                                className="px-3 py-1 rounded hover:bg-sage-100 transition-colors"
+                                disabled={isLoadingMore}
+                            >
+                                ←← First
+                            </button>
                             <button onClick={() => setCurrentPage(currentPage - 1)}>Prev</button>
                         </>
                     )}
@@ -196,7 +266,6 @@ const PlantKnowledgeBase = () => {
                         .filter(p => Math.abs(p - currentPage) < 5 || p === 1 || p === totalPages)
                         .map((p, idx, arr) => (
                             <React.Fragment key={p}>
-                                {/* "..." ellipses */}
                                 {idx > 0 && p - (arr[idx - 1]) > 1 && <span>...</span>}
                                 <button
                                     onClick={() => setCurrentPage(p)}

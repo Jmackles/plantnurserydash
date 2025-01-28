@@ -42,6 +42,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
                 console.error(`Error processing image for plant ${plant.ID}:`, error);
                 plant.ImageUrl = null;
             }
+        } else {
+            plant.ImageUrl = null;
         }
 
         if (!plant) {

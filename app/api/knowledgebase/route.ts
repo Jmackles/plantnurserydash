@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
         const departments = url.searchParams.getAll('departments[]');
         const lifespan = url.searchParams.getAll('lifespan[]');
         const sortField = url.searchParams.get('sort') || 'TagName';
+        const botanicalNames = url.searchParams.getAll('botanicalNames[]');
 
         const db = await getDbConnection();
 
@@ -65,6 +66,11 @@ export async function GET(req: NextRequest) {
         if (foliageType.length > 0) {
             whereConditions.push(`FoliageType IN (${foliageType.map(() => '?').join(',')})`);
             params.push(...foliageType);
+        }
+
+        if (botanicalNames.length > 0) {
+            whereConditions.push(`Botanical IN (${botanicalNames.map(() => '?').join(',')})`);
+            params.push(...botanicalNames);
         }
 
         // Build and execute queries

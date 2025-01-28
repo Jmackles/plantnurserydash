@@ -18,22 +18,6 @@ async function getDbConnection() {
     return db;
 }
 
-let db: sqlite3.Database | null = null;
-
-async function getDbConnection() {
-    if (!db) {
-        db = await open({
-            filename: path.join(process.cwd(), 'app/database/database.sqlite'),
-            driver: sqlite3.Database
-        });
-        await db.run('PRAGMA journaling_mode = WAL');
-        await db.run('CREATE INDEX IF NOT EXISTS idx_BenchTags_ID ON BenchTags (ID)');
-        await db.run('CREATE INDEX IF NOT EXISTS idx_BenchTags_TagName ON BenchTags (TagName)');
-        await db.run('CREATE INDEX IF NOT EXISTS idx_BenchTagImages_TagName ON [BenchTag Images] (TagName)');
-    }
-    return db;
-}
-
 export async function GET(req: NextRequest) {
     try {
         const url = new URL(req.url);
@@ -82,7 +66,6 @@ export async function GET(req: NextRequest) {
         }
 
         if (botanicalNames.length > 0) {
-<<<<<<< HEAD
             const botanicalConditions = botanicalNames.map((filterName) => {
                 const parsed = parseBotanicalName(filterName);
                 if (parsed.isHybrid) {
@@ -106,10 +89,6 @@ export async function GET(req: NextRequest) {
             }).join(' OR ');
 
             whereConditions.push(`(${botanicalConditions})`);
-=======
-            whereConditions.push(`Botanical IN (${botanicalNames.map(() => '?').join(',')})`);
-            params.push(...botanicalNames);
->>>>>>> f2985d72c6dca2efa7f8f889e5d28b789e96bbb3
         }
 
         // Build and execute queries

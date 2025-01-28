@@ -23,7 +23,6 @@ export async function GET(req: NextRequest) {
         const botanicals = await db.all(`
             SELECT DISTINCT Botanical 
             FROM BenchTags 
-<<<<<<< HEAD
             WHERE Botanical IS NOT NULL AND Botanical != ''
             ORDER BY Botanical COLLATE NOCASE
         `);
@@ -41,21 +40,6 @@ export async function GET(req: NextRequest) {
             count: variants.length,
             isHybrid: key.includes('×'),
             level: key.split(' ').length // 1 = genus, 2 = species
-=======
-            WHERE Botanical IS NOT NULL 
-            ORDER BY Botanical COLLATE NOCASE
-        `);
-
-        // Group similar names
-        const names = botanicals.map(b => b.Botanical);
-        const grouped = groupBotanicalNames(names);
-
-        // Format response
-        const response = Object.entries(grouped).map(([normalized, variants]) => ({
-            name: normalized,
-            variants: variants.sort(),
-            count: variants.length
->>>>>>> f2985d72c6dca2efa7f8f889e5d28b789e96bbb3
         }));
 
         return NextResponse.json(response);
@@ -63,8 +47,4 @@ export async function GET(req: NextRequest) {
         console.error('Error fetching botanical names:', error);
         return NextResponse.json({ error: 'Failed to fetch botanical names' }, { status: 500 });
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> f2985d72c6dca2efa7f8f889e5d28b789e96bbb3

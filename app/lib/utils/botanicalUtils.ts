@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 interface BotanicalNameParts {
     genus: string;
     species: string | null;
@@ -178,56 +177,4 @@ export function botanicalNameMatches(plantName: string, filterName: string): boo
 export function parseBotanicalName(name: string): BotanicalNameParts {
     const botanicalName = new BotanicalName(name);
     return botanicalName.parts;
-=======
-export function normalizeBotanicalName(name: string): string {
-    // Remove trailing/leading spaces
-    let normalized = name.trim();
-    
-    // Extract the genus (first word)
-    const genus = normalized.split(' ')[0];
-    
-    // Handle common patterns
-    if (normalized.includes('x ')) {
-        // Handle hybrids: "Genus x species" or "Genus x"
-        normalized = normalized.split("'")[0]; // Remove cultivar names
-        normalized = normalized.split(' x ')[0] + ' x'; // Standardize hybrid notation
-    } else if (normalized.includes('sp.')) {
-        // Handle species notation
-        normalized = genus;
-    } else if (normalized.includes('(')) {
-        // Remove parenthetical notes
-        normalized = normalized.split('(')[0].trim();
-    }
-
-    // Special cases
-    const specialCases: { [key: string]: string } = {
-        'Bada Bing / Bada Boom': 'Begonia',
-        'Tender Perennial Lantana': 'Lantana',
-        'Tender Perennial Verbena': 'Verbena',
-        'Kong Series': 'Coleus',
-        'Fairway Mix': 'Mixed Variety'
-    };
-
-    if (specialCases[normalized]) {
-        return specialCases[normalized];
-    }
-
-    return normalized;
-}
-
-export function groupBotanicalNames(names: string[]): { [key: string]: string[] } {
-    const grouped: { [key: string]: string[] } = {};
-
-    names.forEach(name => {
-        const normalized = normalizeBotanicalName(name);
-        if (!grouped[normalized]) {
-            grouped[normalized] = [];
-        }
-        if (!grouped[normalized].includes(name)) {
-            grouped[normalized].includes(name);
-        }
-    });
-
-    return grouped;
->>>>>>> f2985d72c6dca2efa7f8f889e5d28b789e96bbb3
 }

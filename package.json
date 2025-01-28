@@ -39,5 +39,9 @@
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   },
-  "type": "module"
+  "type": "module",
+  "trustedDependencies": [
+    "node-odbc",
+    "odbc"
+  ]
 }

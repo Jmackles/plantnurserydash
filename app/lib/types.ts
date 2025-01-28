@@ -71,14 +71,38 @@ export interface ActivityItem {
     time: string;
     action: string;
 }
+
 export type AllPerennials = object;
 
 export type BenchTagImages = object;
 
+export interface Genus {
+    id: number;
+    genus_name: string;
+}
+
+export interface Species {
+    id: number;
+    species_name: string;
+    genus_id: number;
+}
+
+export interface Botanical {
+    id: number;
+    botanical_name: string;
+    species_id: number;
+}
+
+export interface CommonNames {
+    id: number;
+    common_name: string;
+    botanical_id: number;
+}
+
 export interface BenchTags {
     ID: number;
     TagName?: string;
-    Botanical?: string;
+    botanical_id?: number; // Foreign key to the Botanical table
     Department?: string;
     Classification?: string;
     NoWarranty: boolean;
@@ -170,3 +194,25 @@ export interface KnowledgeBaseResponse {
     error?: string;
     details?: string;
 }
+
+export interface FilterState {
+    sunExposure: string[];
+    foliageType: string[];
+    lifespan: string[];
+    zones: number[];
+    departments: string[];
+    botanicalNames: string[];
+    searchQuery: string;
+}
+
+export interface FilterOption {
+    label: string;
+    value: string;
+}
+
+export const filterCategories = {
+    sunExposure: ['Full Sun', 'Part Sun', 'Shade', 'Deep Shade'],
+    foliageType: ['Deciduous', 'Evergreen', 'Semi-evergreen'],
+    lifespan: ['Annual', 'Perennial', 'Tropical'],
+    departments: ['Trees', 'Shrubs', 'Perennials', 'Annuals', 'Herbs', 'Vegetables'],
+} as const;

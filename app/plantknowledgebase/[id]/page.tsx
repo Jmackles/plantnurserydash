@@ -10,7 +10,10 @@ const PlantDetails = () => {
     const { id } = useParams();
     const [plant, setPlant] = useState<BenchTags | null>(null);
     const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
     const { showToast, toasts } = useToast();
+=======
+>>>>>>> f2985d72c6dca2efa7f8f889e5d28b789e96bbb3
 
     const translateValue = (value: boolean | undefined) => {
         if (value === undefined) return 'N/A';
@@ -29,7 +32,10 @@ const PlantDetails = () => {
                 setPlant(data);
             } catch (error) {
                 console.error('Error fetching plant:', error);
+<<<<<<< HEAD
                 showToast('Error loading plant details. Please try again.', 'error');
+=======
+>>>>>>> f2985d72c6dca2efa7f8f889e5d28b789e96bbb3
             } finally {
                 setLoading(false);
             }
@@ -39,6 +45,7 @@ const PlantDetails = () => {
     }, [id]);
 
     if (loading) {
+<<<<<<< HEAD
         return <LoadingSpinner />;
     }
 
@@ -48,6 +55,15 @@ const PlantDetails = () => {
 
     const fallbackImageUrl = '/plantimage.jpg';
 
+=======
+        return <div>Loading...</div>;
+    }
+
+    if (!plant) {
+        return <div>Plant not found</div>;
+    }
+
+>>>>>>> f2985d72c6dca2efa7f8f889e5d28b789e96bbb3
     return (
         <main className="p-6 max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold text-sage-700 mb-8">{plant.TagName}</h1>

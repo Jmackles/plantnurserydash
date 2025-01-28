@@ -196,6 +196,7 @@ export interface KnowledgeBaseResponse {
 }
 
 export interface FilterState {
+<<<<<<< HEAD
     sunExposure: string[];
     foliageType: string[];
     lifespan: string[];
@@ -215,4 +216,25 @@ export const filterCategories = {
     foliageType: ['Deciduous', 'Evergreen', 'Semi-evergreen'],
     lifespan: ['Annual', 'Perennial', 'Tropical'],
     departments: ['Trees', 'Shrubs', 'Perennials', 'Annuals', 'Herbs', 'Vegetables'],
+=======
+  sunExposure: string[];
+  foliageType: string[];
+  lifespan: string[];
+  zones: number[];
+  departments: string[];
+  botanicalNames: string[];
+  searchQuery: string;
+}
+
+export interface FilterOption {
+  label: string;
+  value: string;
+}
+
+export const filterCategories = {
+  sunExposure: ['Full Sun', 'Part Sun', 'Shade', 'Deep Shade'],
+  foliageType: ['Deciduous', 'Evergreen', 'Semi-evergreen'],
+  lifespan: ['Annual', 'Perennial', 'Tropical'],
+  departments: ['Trees', 'Shrubs', 'Perennials', 'Annuals', 'Herbs', 'Vegetables'],
+>>>>>>> f2985d72c6dca2efa7f8f889e5d28b789e96bbb3
 } as const;

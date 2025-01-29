@@ -38,11 +38,16 @@ const config = {
       },
       animation: {
         'leaf-sway': 'leaf-sway 3s ease-in-out infinite',
+        'fade-in': 'fadeIn 0.3s ease-in forwards',
       },
       keyframes: {
         'leaf-sway': {
           '0%, 100%': { transform: 'rotate(-3deg)' },
           '50%': { transform: 'rotate(3deg)' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
         },
       },
     },

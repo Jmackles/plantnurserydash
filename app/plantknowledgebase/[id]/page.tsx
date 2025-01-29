@@ -10,7 +10,7 @@ const PlantDetails = () => {
     const { id } = useParams();
     const [plant, setPlant] = useState<BenchTags | null>(null);
     const [loading, setLoading] = useState(true);
-    const { showToast, toasts } = useToast();
+    const { showToast, toast } = useToast();
 
     const translateValue = (value: boolean | undefined) => {
         if (value === undefined) return 'N/A';
@@ -80,9 +80,9 @@ const PlantDetails = () => {
                     <p><strong>Pot Type:</strong> {plant.PotType}</p>
                 </div>
             </div>
-            {toasts.map((toast, index) => (
-                <Toast key={index} message={toast.message} type={toast.type} />
-            ))}
+            {toast && (
+                <Toast message={toast.message} type={toast.type} />
+            )}
         </main>
     );
 };

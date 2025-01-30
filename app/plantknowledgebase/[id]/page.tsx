@@ -65,7 +65,7 @@ const PlantDetails = () => {
                     />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <p><strong>Botanical:</strong> {plant.Botanical}</p>
+                    <p><strong>Botanical:</strong> {plant.botanical_id}</p>
                     <p><strong>Department:</strong> {plant.Department}</p>
                     <p><strong>Sun:</strong> {translateValue(plant.FullSun)}</p>
                     <p><strong>Part Sun:</strong> {translateValue(plant.PartSun)}</p>

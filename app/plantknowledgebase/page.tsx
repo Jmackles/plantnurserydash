@@ -25,6 +25,7 @@ const PlantKnowledgeBase = () => {
     });
     const { showToast } = useToast();
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(true);
 
     const itemsPerPage = 10;
 
@@ -124,8 +125,10 @@ const PlantKnowledgeBase = () => {
             <PlantSearchFilterPanel
                 filters={filters}
                 setFilters={setFilters}
+                isVisible={isFilterPanelVisible}
+                toggleVisibility={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
             />
-            <main className="flex-1 p-8 ml-80 max-w-[calc(100vw-320px)] min-h-screen">
+            <main className={`flex-1 p-8 transition-all duration-300 ${isFilterPanelVisible ? 'ml-80' : 'ml-0'} max-w-[calc(100vw-320px)] min-h-screen`}>
                 <div className="max-w-7xl mx-auto space-y-6">
                     <h1 className="text-4xl font-bold text-sage-700 tracking-tight">
                         Plant Knowledge Base
@@ -205,7 +208,7 @@ const PlantKnowledgeBase = () => {
                                             <th className="py-2 px-4 border-b">Part Sun</th>
                                             <th className="py-2 px-4 border-b">Shade</th>
                                             <th className="py-2 px-4 border-b">Growth Rate</th>
-                                            <th className="py-2 px-4 border-b">Mature Size</th>
+                                            <th class="py-2 px-4 border-b">Mature Size</th>
                                             <th className="py-2 px-4 border-b">Zones</th>
                                             <th className="py-2 px-4 border-b">Notes</th>
                                             <th className="py-2 px-4 border-b">Price</th>

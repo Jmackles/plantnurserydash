@@ -12,6 +12,7 @@ const Dashboard = () => {
     const [filter, setFilter] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isAdding, setIsAdding] = useState(false);
+    const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(true);
 
     useEffect(() => {
         fetchCustomers()
@@ -101,25 +102,16 @@ const Dashboard = () => {
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="md:col-span-1">
-                    <CustomerSearchFilterPanel
-                        searchQuery={searchQuery}
-                        setSearchQuery={setSearchQuery}
-                        filter={filter}
-                        setFilter={setFilter}
-                    />
-                    <button
-                        onClick={() => {
-                            console.log('Add New Customer button clicked');
-                            setIsAdding(true);
-                        }}
-                        className="btn-primary mt-4"
-                    >
-                        Add New Customer
-                    </button>
-                </div>
-                <div className="md:col-span-3">
+            <div className="flex">
+                <CustomerSearchFilterPanel
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    filter={filter}
+                    setFilter={setFilter}
+                    isVisible={isFilterPanelVisible}
+                    toggleVisibility={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
+                />
+                <div className={`flex-1 ${isFilterPanelVisible ? 'ml-72' : 'ml-0'}`}>
                     <div className="overflow-x-auto">
                         <table className="min-w-full bg-white shadow-md rounded-lg">
                             <thead>

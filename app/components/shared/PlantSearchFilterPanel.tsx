@@ -17,11 +17,15 @@ const defaultFilters: FilterState = {
 interface PlantSearchFilterPanelProps {
     filters: FilterState;
     setFilters: (filters: FilterState) => void;
+    isVisible: boolean;
+    toggleVisibility: () => void;
 }
 
 const PlantSearchFilterPanel: React.FC<PlantSearchFilterPanelProps> = ({
     filters = defaultFilters,
-    setFilters
+    setFilters,
+    isVisible,
+    toggleVisibility
 }) => {
     const [botanicalGroups, setBotanicalGroups] = useState<BotanicalGroup[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -127,140 +131,144 @@ const PlantSearchFilterPanel: React.FC<PlantSearchFilterPanelProps> = ({
     };
 
     return (
-        <div className="fixed left-0 top-0 h-full w-72 bg-white shadow-lg border-r border-sage-200 transition-all duration-300 z-20 flex flex-col">
-            <div className="p-4 border-b border-sage-200 bg-white">
-                <h3 className="text-lg font-semibold text-sage-700">Filters</h3>
-                <input
-                    type="text"
-                    placeholder="Search plants..."
-                    value={filters.searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    className="input-field mt-2"
-                />
-                <input
-                    type="text"
-                    placeholder="Search botanical names..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="input-field"
-                />
-            </div>
-
-            <div className="flex-1 overflow-y-auto">
-                <div className="sticky top-0 bg-white/95 backdrop-blur-sm p-2 border-b z-10">
-                    <div className="flex flex-wrap gap-1">
-                        {alphabeticalGroups.map(({ letter }) => (
-                            <button
-                                key={letter}
-                                onClick={() => scrollToLetter(letter)}
-                                className={`w-6 h-6 text-xs rounded-full flex items-center justify-center
-                                          ${selectedLetter === letter 
-                                            ? 'bg-sage-600 text-white' 
-                                            : 'bg-sage-100 hover:bg-sage-200'}`}
-                            >
-                                {letter}
-                            </button>
-                        ))}
-                    </div>
+        <>
+            <div className={`fixed left-0 top-0 h-full w-72 bg-white shadow-lg border-r border-sage-200 transition-transform duration-300 z-20 flex flex-col ${isVisible ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="p-4 border-b border-sage-200 bg-white flex justify-between items-center">
+                    <h3 className="text-lg font-semibold text-sage-700">Filters</h3>
+                    <button
+                        onClick={toggleVisibility}
+                        className="text-sage-600 hover:text-sage-800"
+                    >
+                        {isVisible ? '✕' : '☰'}
+                    </button>
                 </div>
 
-                <div className="p-4">
-                    {alphabeticalGroups.map(({ letter, items }) => (
-                        <div key={letter} id={`botanical-letter-${letter}`}>
-                            <div className="sticky top-0 bg-sage-50 px-2 py-1 text-sage-800 font-semibold">
-                                {letter}
-                            </div>
-                            {items.map((group) => (
-                                <div key={group.name} className="pl-2">
-                                    <div className="flex items-center p-2 hover:bg-gray-50">
-                                        <input
-                                            type="checkbox"
-                                            checked={filters.botanicalNames.includes(group.name)}
-                                            onChange={(e) => handleBotanicalSelection(group, e.target.checked)}
-                                            className="mr-2"
-                                        />
-                                        <div className="flex-1">
-                                            <span className="font-medium">{group.name}</span>
-                                            <span className="text-sm text-gray-500 ml-2">
-                                                ({group.variants.length})
-                                            </span>
-                                        </div>
-                                        {group.variants.length > 1 && (
-                                            <button
-                                                onClick={() => toggleGroup(group.name)}
-                                                className="text-sage-600 hover:text-sage-800"
-                                            >
-                                                {expandedGroups.has(group.name) ? '▼' : '▶'}
-                                            </button>
-                                        )}
-                                    </div>
-                                    {expandedGroups.has(group.name) && group.variants.length > 1 && (
-                                        renderVariantsList(group)
-                                    )}
-                                </div>
+                <div className="flex-1 overflow-y-auto">
+                    <div className="sticky top-0 bg-white/95 backdrop-blur-sm p-2 border-b z-10">
+                        <div className="flex flex-wrap gap-1">
+                            {alphabeticalGroups.map(({ letter }) => (
+                                <button
+                                    key={letter}
+                                    onClick={() => scrollToLetter(letter)}
+                                    className={`w-6 h-6 text-xs rounded-full flex items-center justify-center
+                                            ${selectedLetter === letter 
+                                                ? 'bg-sage-600 text-white' 
+                                                : 'bg-sage-100 hover:bg-sage-200'}`}
+                                >
+                                    {letter}
+                                </button>
                             ))}
                         </div>
-                    ))}
-
-                    <div className="mt-6 pt-4 border-t">
-                        <h4 className="form-label">Sun Exposure</h4>
-                        {filterCategories.sunExposure.map((option) => (
-                            <label key={option} className="flex items-center p-1">
-                                <input
-                                    type="checkbox"
-                                    checked={filters.sunExposure.includes(option)}
-                                    onChange={(e) => {
-                                        const updated = e.target.checked
-                                            ? [...filters.sunExposure, option]
-                                            : filters.sunExposure.filter(item => item !== option);
-                                        setFilters({ ...filters, sunExposure: updated });
-                                    }}
-                                    className="mr-2"
-                                />
-                                {option}
-                            </label>
-                        ))}
                     </div>
 
-                    <div className="mt-6">
-                        <h4 className="form-label">Department</h4>
-                        {filterCategories.departments.map((dept) => (
-                            <label key={dept} className="flex items-center p-1">
-                                <input
-                                    type="checkbox"
-                                    checked={filters.departments.includes(dept)}
-                                    onChange={(e) => {
-                                        const updated = e.target.checked
-                                            ? [...filters.departments, dept]
-                                            : filters.departments.filter(item => item !== dept);
-                                        setFilters({ ...filters, departments: updated });
-                                    }}
-                                    className="mr-2"
-                                />
-                                {dept}
-                            </label>
+                    <div className="p-4">
+                        {alphabeticalGroups.map(({ letter, items }) => (
+                            <div key={letter} id={`botanical-letter-${letter}`}>
+                                <div className="sticky top-0 bg-sage-50 px-2 py-1 text-sage-800 font-semibold">
+                                    {letter}
+                                </div>
+                                {items.map((group) => (
+                                    <div key={group.name} className="pl-2">
+                                        <div className="flex items-center p-2 hover:bg-gray-50">
+                                            <input
+                                                type="checkbox"
+                                                checked={filters.botanicalNames.includes(group.name)}
+                                                onChange={(e) => handleBotanicalSelection(group, e.target.checked)}
+                                                className="mr-2"
+                                            />
+                                            <div className="flex-1">
+                                                <span className="font-medium">{group.name}</span>
+                                                <span className="text-sm text-gray-500 ml-2">
+                                                    ({group.variants.length})
+                                                </span>
+                                            </div>
+                                            {group.variants.length > 1 && (
+                                                <button
+                                                    onClick={() => toggleGroup(group.name)}
+                                                    className="text-sage-600 hover:text-sage-800"
+                                                >
+                                                    {expandedGroups.has(group.name) ? '▼' : '▶'}
+                                                </button>
+                                            )}
+                                        </div>
+                                        {expandedGroups.has(group.name) && group.variants.length > 1 && (
+                                            renderVariantsList(group)
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         ))}
+
+                        <div className="mt-6 pt-4 border-t">
+                            <h4 className="form-label">Sun Exposure</h4>
+                            {filterCategories.sunExposure.map((option) => (
+                                <label key={option} className="flex items-center p-1">
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.sunExposure.includes(option)}
+                                        onChange={(e) => {
+                                            const updated = e.target.checked
+                                                ? [...filters.sunExposure, option]
+                                                : filters.sunExposure.filter(item => item !== option);
+                                            setFilters({ ...filters, sunExposure: updated });
+                                        }}
+                                        className="mr-2"
+                                    />
+                                    {option}
+                                </label>
+                            ))}
+                        </div>
+
+                        <div className="mt-6">
+                            <h4 className="form-label">Department</h4>
+                            {filterCategories.departments.map((dept) => (
+                                <label key={dept} className="flex items-center p-1">
+                                    <input
+                                        type="checkbox"
+                                        checked={filters.departments.includes(dept)}
+                                        onChange={(e) => {
+                                            const updated = e.target.checked
+                                                ? [...filters.departments, dept]
+                                                : filters.departments.filter(item => item !== dept);
+                                            setFilters({ ...filters, departments: updated });
+                                        }}
+                                        className="mr-2"
+                                    />
+                                    {dept}
+                                </label>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="p-4 border-t border-sage-200 bg-white">
-                <button
-                    onClick={() => setFilters({
-                        sunExposure: [],
-                        foliageType: [],
-                        lifespan: [],
-                        zones: [],
-                        departments: [],
-                        botanicalNames: [],
-                        searchQuery: ''
-                    })}
-                    className="btn-secondary w-full"
-                >
-                    Clear All Filters
-                </button>
+                <div className="p-4 border-t border-sage-200 bg-white">
+                    <button
+                        onClick={() => setFilters({
+                            sunExposure: [],
+                            foliageType: [],
+                            lifespan: [],
+                            zones: [],
+                            departments: [],
+                            botanicalNames: [],
+                            searchQuery: ''
+                        })}
+                        className="btn-secondary w-full"
+                    >
+                        Clear All Filters
+                    </button>
+                </div>
             </div>
-        </div>
+            
+            {!isVisible && (
+                <div 
+                    className="fixed left-0 top-16 transform translate-y-0 bg-sage-600 text-white px-2 py-1 rounded-r hover:bg-sage-700 cursor-pointer z-30"
+                    onClick={toggleVisibility}
+                    onMouseEnter={() => {/* Optional: Add tooltip or preview */}}
+                >
+                    ☰
+                </div>
+            )}
+        </>
     );
 };
 

@@ -1,3 +1,4 @@
+'use client'
 import React from 'react';
 
 interface ModalProps {
@@ -11,8 +12,8 @@ const Modal: React.FC<ModalProps> = ({ title, onClose, children }) => {
         <div className="modal-overlay">
             <div className="modal-content">
                 <div className="modal-header">
-                    <h2 className="text-xl font-semibold">{title}</h2>
-                    <button onClick={onClose} className="close-button">X</button>
+                    <h2 className="modal-title">{title}</h2>
+                    <button onClick={onClose} className="modal-close">X</button>
                 </div>
                 <div className="modal-body">
                     {children}

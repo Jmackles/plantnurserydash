@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import SearchFilterPanel from '../components/shared/SearchFilterPanel';
+import PlantSearchFilterPanel from '../components/shared/PlantSearchFilterPanel';
 import PlantCard from '../components/cards/PlantCard';
 import { BenchTags, KnowledgeBaseResponse } from '../lib/types';
 import { useToast } from '../hooks/useToast'; // Create this custom hook
@@ -121,7 +121,7 @@ const PlantKnowledgeBase = () => {
 
     return (
         <div className="flex min-h-screen bg-gray-50">
-            <SearchFilterPanel
+            <PlantSearchFilterPanel
                 filters={filters}
                 setFilters={setFilters}
             />

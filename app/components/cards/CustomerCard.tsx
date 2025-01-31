@@ -1,9 +1,18 @@
-// Customer Card Component components/cards/CustomerCard.js
 'use client'
 import React from 'react';
 import Card from './Cards';
 
-const CustomerCard = ({ customer, onClick }) => {
+type CustomerCardProps = {
+  customer: {
+    first_name: string;
+    last_name: string;
+    phone?: string;
+    email?: string;
+  };
+  onClick: () => void;
+};
+
+const CustomerCard: React.FC<CustomerCardProps> = ({ customer, onClick }) => {
     return (
         <Card>
             <div onClick={onClick} className="cursor-pointer">

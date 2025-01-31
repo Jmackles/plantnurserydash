@@ -1,31 +1,21 @@
 'use client'
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Customer } from './../../lib/types';
-import { fetchCustomerById, updateCustomer } from './../../lib/api';
+import { Customer } from '@/app/lib/types';
+import { updateCustomer } from '@/app/lib/api';
+import { useFetch } from '@/app/hooks/useFetch';
 
 const CustomerDetails = () => {
     const { id } = useParams();
-    const [customer, setCustomer] = useState<Customer | null>(null);
+    const { data: customer, error, loading } = useFetch<Customer>(`/api/customers/${id}`);
     const [isEditing, setIsEditing] = useState(false);
     const [editData, setEditData] = useState<Customer | null>(null);
 
     useEffect(() => {
-        if (id) {
-            fetchCustomerById(Number(id))
-                .then((data) => {
-                    if (data && data.id) {
-                        setCustomer(data);
-                        setEditData(data);
-                    } else {
-                        console.error('Invalid customer data:', data);
-                    }
-                })
-                .catch((error) => {
-                    console.error('Error fetching customer:', error);
-                });
+        if (customer) {
+            setEditData(customer);
         }
-    }, [id]);
+    }, [customer]);
 
     const handleEditChange = (field: keyof Customer, value: string | boolean) => {
         setEditData((prev) => (prev ? { ...prev, [field]: value } : null));
@@ -35,15 +25,23 @@ const CustomerDetails = () => {
         if (!editData) return;
         try {
             const updatedCustomer = await updateCustomer(editData);
-            setCustomer(updatedCustomer);
+            setEditData(updatedCustomer);
             setIsEditing(false);
         } catch (error) {
             console.error('Error updating customer:', error);
         }
     };
 
-    if (!customer) {
+    if (loading) {
         return <div>Loading...</div>;
+    }
+
+    if (error) {
+        return <div>Error loading customer details</div>;
+    }
+
+    if (!customer) {
+        return <div>Customer not found</div>;
     }
 
     return (

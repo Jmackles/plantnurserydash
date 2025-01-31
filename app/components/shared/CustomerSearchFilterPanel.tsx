@@ -1,14 +1,14 @@
 'use client'
 import React from 'react';
 
-interface SearchFilterPanelProps {
+interface CustomerSearchFilterPanelProps {
     searchQuery: string;
     setSearchQuery: (query: string) => void;
     filter: string;
     setFilter: (filter: string) => void;
 }
 
-const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
+const CustomerSearchFilterPanel: React.FC<CustomerSearchFilterPanelProps> = ({
     searchQuery,
     setSearchQuery,
     filter,
@@ -20,7 +20,7 @@ const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
                 <h3 className="text-lg font-semibold text-sage-700">Filters</h3>
                 <input
                     type="text"
-                    placeholder="Search..."
+                    placeholder="Search customers..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="input-field mt-2"
@@ -79,4 +79,4 @@ const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     );
 };
 
-export default SearchFilterPanel;
+export default CustomerSearchFilterPanel;

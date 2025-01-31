@@ -44,11 +44,11 @@ export async function PUT(request: NextRequest, context: { params: { id: string 
     }
 }
 
-export async function GETById(request: NextRequest, context: { params: { id: string } }) {
+export async function GET(request: NextRequest, context: { params: { id: string } }) {
     try {
         const { params } = context;
         const db = await open({
-            filename: path.join(process.cwd(), '../../database/database.sqlite'), // Ensure this path is correct
+            filename: path.join(process.cwd(), 'app/database/database.sqlite'), // Ensure this path is correct
             driver: sqlite3.Database
         });
 
@@ -63,24 +63,5 @@ export async function GETById(request: NextRequest, context: { params: { id: str
     } catch (error) {
         console.error('Error fetching customer:', error);
         return NextResponse.json({ error: 'Failed to fetch customer' }, { status: 500 });
-    }
-}
-
-export async function GET() {
-    try {
-        const db = await open({
-            filename: path.join(process.cwd(), 'app/database/database.sqlite'), // Ensure this path is correct
-            driver: sqlite3.Database
-        });
-
-        const customers = await db.all('SELECT * FROM customers');
-        await db.close();
-        return NextResponse.json(customers);
-    } catch (error: unknown) {
-        console.error('Error fetching customers:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch customers' },
-            { status: 500 }
-        );
     }
 }

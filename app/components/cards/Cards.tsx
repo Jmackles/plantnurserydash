@@ -2,6 +2,10 @@
 import React from 'react';
 import styled from 'styled-components';
 
+type CardProps = {
+  children: React.ReactNode;
+};
+
 const CardContainer = styled.div`
     width: 300px;
     height: 500px;
@@ -30,7 +34,7 @@ const CardContainer = styled.div`
     }
 `;
 
-const Card = ({ children }) => {
+const Card: React.FC<CardProps> = ({ children }) => {
     return <CardContainer>{children}</CardContainer>;
 };
 

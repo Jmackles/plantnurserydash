@@ -72,9 +72,11 @@ export interface ActivityItem {
     action: string;
 }
 
-export type AllPerennials = object;
-
-export type BenchTagImages = object;
+export interface BenchTagImages {
+    TagName?: string;
+    Botanical?: string;
+    Image?: Blob;
+}
 
 export interface Genus {
     id: number;
@@ -196,13 +198,14 @@ export interface KnowledgeBaseResponse {
 }
 
 export interface FilterState {
+    searchQuery: string;
     sunExposure: string[];
     foliageType: string[];
     lifespan: string[];
-    zones: number[];
+    zones: string[];
     departments: string[];
     botanicalNames: string[];
-    searchQuery: string;
+    [key: string]: any;
 }
 
 export interface FilterOption {
@@ -216,3 +219,25 @@ export const filterCategories = {
     lifespan: ['Annual', 'Perennial', 'Tropical'],
     departments: ['Trees', 'Shrubs', 'Perennials', 'Annuals', 'Herbs', 'Vegetables'],
 } as const;
+
+export interface AllPerennials {
+    ID: number;
+    TagName?: string;
+    Botanical?: string;
+    Department?: string;
+    Classification?: string;
+    Winterizing?: string;
+    NoWarranty: boolean;
+    DeerResistance?: string;
+    CarNative: boolean;
+    MeltingSun: boolean;
+    FullSun: boolean;
+    PartSun: boolean;
+    Shade: boolean;
+    GrowthRate?: string;
+    MatureSize?: string;
+    ZoneMax?: string;
+    ZoneMin?: string;
+    Notes?: string;
+    Image?: Blob;
+}

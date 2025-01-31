@@ -1,54 +1,51 @@
 "use client"
 import { useEffect, useState } from 'react';
-import { DashboardMetrics, ActivityItem, Customer, WantListEntry } from './lib/types';
-import { fetchCustomers, fetchWantListEntries } from './lib/api';
-import { getMetrics } from './utils/Metrics';
+import { DashboardMetrics, ActivityItem } from '@/app/lib/types';
+import { useFetch } from '@/app/hooks/useFetch';
 import Link from 'next/link';
 import { Tooltip } from 'react-tooltip';
 
 export default function Dashboard() {
+    const { data: customers, error: customersError, loading: customersLoading } = useFetch<Customer[]>('/api/customers');
+    const { data: wantListEntries, error: wantListEntriesError, loading: wantListEntriesLoading } = useFetch<WantListEntry[]>('/api/want-list');
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [customers, wantListEntries] = await Promise.all([
-                    fetchCustomers(),
-                    fetchWantListEntries()
-                ]);
+        if (customers && wantListEntries) {
+            const orders: unknown[] = []; // Use a safer placeholder if needed
+            const calculatedMetrics: DashboardMetrics = {
+                totalCustomers: customers.length,
+                activeWantlists: wantListEntries.filter(w => !w.is_closed).length,
+                totalPlants: wantListEntries.reduce((acc, w) => acc + w.plants.length, 0),
+                pendingOrders: orders.filter(o => !o.completed).length,
+                averagePlantsPerWantList: wantListEntries.length ? 
+                    Math.round(wantListEntries.reduce((acc, w) => acc + w.plants.length, 0) / wantListEntries.length) : 0,
+                totalOrders: orders.length,
+                completedOrders: orders.filter(o => o.completed).length
+            };
 
-                const orders: any[] = []; // Explicitly type as any[]
-                const calculatedMetrics: DashboardMetrics = {
-                    totalCustomers: customers.length,
-                    activeWantlists: wantListEntries.filter(w => !w.is_closed).length,
-                    totalPlants: wantListEntries.reduce((acc, w) => acc + w.plants.length, 0),
-                    pendingOrders: orders.filter(o => !o.completed).length,
-                    averagePlantsPerWantList: wantListEntries.length ? 
-                        Math.round(wantListEntries.reduce((acc, w) => acc + w.plants.length, 0) / wantListEntries.length) : 0,
-                    totalOrders: orders.length,
-                    completedOrders: orders.filter(o => o.completed).length
-                };
+            setMetrics(calculatedMetrics);
 
-                setMetrics(calculatedMetrics);
+            const activity: ActivityItem[] = wantListEntries.map(entry => ({
+                type: 'wantlist',
+                customer: `${entry.customer_first_name} ${entry.customer_last_name}`,
+                time: 'N/A', // Replace with actual time if available
+                action: `New request for ${entry.initial}`,
+                customer_id: entry.customer_id // Add customer_id to the activity item
+            }));
 
-                // Assuming recent activity can be derived from wantListEntries or another source
-                const activity: ActivityItem[] = wantListEntries.map(entry => ({
-                    type: 'wantlist',
-                    customer: `${entry.customer_first_name} ${entry.customer_last_name}`,
-                    time: 'N/A', // Replace with actual time if available
-                    action: `New request for ${entry.initial}`,
-                    customer_id: entry.customer_id // Add customer_id to the activity item
-                }));
+            setRecentActivity(activity);
+        }
+    }, [customers, wantListEntries]);
 
-                setRecentActivity(activity);
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        };
+    if (customersLoading || wantListEntriesLoading) {
+        return <div>Loading...</div>;
+    }
 
-        fetchData();
-    }, []);
+    if (customersError || wantListEntriesError) {
+        return <div>Error loading data</div>;
+    }
 
     if (!metrics) {
         return <div>Loading...</div>;
@@ -56,7 +53,6 @@ export default function Dashboard() {
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
-          
             {/* Metrics Overview */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 {Object.entries(metrics).map(([key, value]) => (

@@ -10,6 +10,9 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
     const [imageError, setImageError] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
     const [imageUrl, setImageUrl] = useState(plant.ImageUrl || ''); // Manage ImageUrl in local state
+    const [reloadKey, setReloadKey] = useState(Date.now()); // New state to force component reload
+    // New state to store the temporary preview URL for the dragged image.
+    const [tempPreviewUrl, setTempPreviewUrl] = useState<string | null>(null);
 
     const getSunExposure = () => {
         const exposures = [];
@@ -53,6 +56,10 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         const file = e.dataTransfer.files[0];
         if (!file) return;
 
+        // Set temporary preview from the local file.
+        const blobUrl = URL.createObjectURL(file);
+        setTempPreviewUrl(blobUrl);
+
         // Check for supported image types including BMP
         const supportedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp'];
         if (!supportedTypes.includes(file.type)) {
@@ -80,6 +87,7 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                 const timestamp = new Date().getTime();
                 setImageUrl(`${data.imageUrl}?t=${timestamp}`); // Force re-render with timestamp
                 setImageError(false); // Reset error if image is loaded
+                setReloadKey(Date.now()); // Force reload of the plant card
             }
         } catch (error) {
             console.error('Error uploading image:', error);
@@ -87,20 +95,24 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         }
     }, [plant]);
 
+    // Determine which image src to display.
+    const displaySrc = (imageError && tempPreviewUrl) ? tempPreviewUrl : imageUrl;
+
     return (
-        <>
-            <Link href={`/plantknowledgebase/${plant.ID}`}>
+        // Apply key directly to Link so that the card fully re-mounts on update
+        <Link href={`/plantknowledgebase/${plant.ID}`} key={reloadKey}>
+            <div>
                 <div 
                     className={`group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-sage-100 hover:border-sage-300 ${isDragging ? 'border-dashed border-4 border-sage-500' : ''}`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    {imageUrl && !imageError ? (
+                    {displaySrc && (
                         <div className="relative h-56 overflow-hidden bg-sage-50">
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
                             <img 
-                                src={imageUrl}  // Use local state imageUrl
+                                src={displaySrc}  // Use the computed displaySrc
                                 alt={plant.TagName || ''}
                                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                                 onError={() => setImageError(true)}
@@ -124,7 +136,8 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                                 {getDeerResistantIcon()}
                             </div>
                         </div>
-                    ) : (
+                    )}
+                    {!displaySrc && (
                         <div className="h-56 bg-sage-50 flex items-center justify-center">
                             <span className="text-sage-400">No Image Available</span>
                         </div>
@@ -193,8 +206,8 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                         </div>
                     </div>
                 </div>
-            </Link>
-        </>
+            </div>
+        </Link>
     );
 };
 

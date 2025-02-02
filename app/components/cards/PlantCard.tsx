@@ -7,6 +7,10 @@ interface PlantCardProps {
 }
 
 const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
+    const [imageError, setImageError] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [imageUrl, setImageUrl] = useState(plant.ImageUrl || ''); // Manage ImageUrl in local state
+
     const getSunExposure = () => {
         const exposures = [];
         if (plant.MeltingSun) exposures.push('☀️☀️');
@@ -33,9 +37,6 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         return price.startsWith('$') ? price : `$${price}`;
     };
 
-    const [imageError, setImageError] = useState(false);
-    const [isDragging, setIsDragging] = useState(false);
-
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(true);
@@ -50,27 +51,39 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         setIsDragging(false);
 
         const file = e.dataTransfer.files[0];
-        if (file && file.type.startsWith('image/')) {
-            const formData = new FormData();
-            formData.append('image', file);
+        if (!file) return;
 
-            try {
-                const response = await fetch(`/api/knowledgebase/${plant.ID}/image`, {
-                    method: 'POST',
-                    body: formData,
-                });
+        // Check for supported image types including BMP
+        const supportedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp'];
+        if (!supportedTypes.includes(file.type)) {
+            alert('Please upload a supported image format (JPEG, PNG, GIF, or BMP)');
+            return;
+        }
 
-                if (!response.ok) {
-                    throw new Error('Failed to upload image');
-                }
+        const formData = new FormData();
+        formData.append('image', file);
 
+        try {
+            const response = await fetch(`/api/knowledgebase/${plant.ID}/image`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
                 const data = await response.json();
-                if (data.imageUrl) {
-                    plant.ImageUrl = data.imageUrl;
-                }
-            } catch (error) {
-                console.error('Error uploading image:', error);
+                throw new Error(data.error || 'Failed to upload image');
             }
+
+            const data = await response.json();
+            if (data.imageUrl) {
+                // Update the state with the new image URL
+                const timestamp = new Date().getTime();
+                setImageUrl(`${data.imageUrl}?t=${timestamp}`); // Force re-render with timestamp
+                setImageError(false); // Reset error if image is loaded
+            }
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert(error.message || 'Failed to upload image');
         }
     }, [plant]);
 
@@ -83,11 +96,11 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    {plant.ImageUrl && !imageError ? (
+                    {imageUrl && !imageError ? (
                         <div className="relative h-56 overflow-hidden bg-sage-50">
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
                             <img 
-                                src={plant.ImageUrl}
+                                src={imageUrl}  // Use local state imageUrl
                                 alt={plant.TagName || ''}
                                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                                 onError={() => setImageError(true)}

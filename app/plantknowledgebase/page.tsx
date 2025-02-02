@@ -7,6 +7,14 @@ import { BenchTags, KnowledgeBaseResponse } from '../lib/types';
 import { useToast } from '../hooks/useToast'; // Create this custom hook
 import { LoadingSpinner } from '../components/shared/LoadingSpinner'; // Create this component
 
+// Add a normalization helper for botanical names
+function normalizeBotanical(name: string): string {
+    // Split at 'x' and remove any quoted text (cultivar names)
+    let base = name.split('x')[0].trim();
+    base = base.replace(/'.*'/g, '').trim();
+    return base.toLowerCase();
+}
+
 const PlantKnowledgeBase = () => {
     const [plants, setPlants] = useState<BenchTags[]>([]);
     const [viewMode, setViewMode] = useState<'list' | 'card'>('card');
@@ -72,6 +80,12 @@ const PlantKnowledgeBase = () => {
                 
                 if (mounted) {
                     if (Array.isArray(result.data)) {
+                        // If sorting by botanical, apply client-side sort using normalization.
+                        if (sortField === 'Botanical') {
+                            result.data.sort((a, b) =>
+                                normalizeBotanical(a.Botanical).localeCompare(normalizeBotanical(b.Botanical))
+                            );
+                        }
                         setPlants(result.data);
                         setTotalPages(result.pagination.totalPages);
                     } else {

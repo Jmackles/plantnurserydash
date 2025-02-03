@@ -140,6 +140,8 @@ export interface BenchTags {
     Print: boolean;
     Sun?: boolean;
     SpecialCareAttributes?: string;
+    ImageUrls?: string[];
+    TemporaryImage?: boolean; // Flag for temporary images
 }
 
 export interface CheckTable {

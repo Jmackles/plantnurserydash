@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { BenchTags } from '../../lib/types';
 
@@ -6,13 +6,38 @@ interface PlantCardProps {
     plant: BenchTags;
 }
 
+const GOOGLE_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+const GOOGLE_CX = process.env.NEXT_PUBLIC_GOOGLE_CX;
+
 const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
     const [imageError, setImageError] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
-    const [imageUrl, setImageUrl] = useState(plant.ImageUrl || ''); // Manage ImageUrl in local state
+    const [imageUrl, setImageUrl] = useState(plant.ImageUrls?.[0] || ''); // Use the first image as the default
     const [reloadKey, setReloadKey] = useState(Date.now()); // New state to force component reload
-    // New state to store the temporary preview URL for the dragged image.
     const [tempPreviewUrl, setTempPreviewUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!imageUrl) {
+            fetchImageFromGoogle(plant.TagName).then((googleImage) => {
+                if (googleImage) {
+                    setImageUrl(googleImage);
+                }
+            });
+        }
+    }, [imageUrl, plant.TagName]);
+
+    const fetchImageFromGoogle = async (query: string) => {
+        try {
+            const response = await fetch(`https://www.googleapis.com/customsearch/v1?q=${query}&cx=${GOOGLE_CX}&key=${GOOGLE_API_KEY}&searchType=image&num=1`);
+            const data = await response.json();
+            if (data.items && data.items.length > 0) {
+                return data.items[0].link;
+            }
+        } catch (error) {
+            console.error('Error fetching image from Google:', error);
+        }
+        return null;
+    };
 
     const getSunExposure = () => {
         const exposures = [];
@@ -56,11 +81,9 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         const file = e.dataTransfer.files[0];
         if (!file) return;
 
-        // Set temporary preview from the local file.
         const blobUrl = URL.createObjectURL(file);
         setTempPreviewUrl(blobUrl);
 
-        // Check for supported image types including BMP
         const supportedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp'];
         if (!supportedTypes.includes(file.type)) {
             alert('Please upload a supported image format (JPEG, PNG, GIF, or BMP)');
@@ -83,11 +106,10 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
 
             const data = await response.json();
             if (data.imageUrl) {
-                // Update the state with the new image URL
                 const timestamp = new Date().getTime();
-                setImageUrl(`${data.imageUrl}?t=${timestamp}`); // Force re-render with timestamp
-                setImageError(false); // Reset error if image is loaded
-                setReloadKey(Date.now()); // Force reload of the plant card
+                setImageUrl(`${data.imageUrl}?t=${timestamp}`);
+                setImageError(false);
+                setReloadKey(Date.now());
             }
         } catch (error) {
             console.error('Error uploading image:', error);
@@ -95,11 +117,9 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         }
     }, [plant]);
 
-    // Determine which image src to display.
     const displaySrc = (imageError && tempPreviewUrl) ? tempPreviewUrl : imageUrl;
 
     return (
-        // Apply key directly to Link so that the card fully re-mounts on update
         <Link href={`/plantknowledgebase/${plant.ID}`} key={reloadKey}>
             <div>
                 <div 
@@ -112,12 +132,11 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                         <div className="relative h-56 overflow-hidden bg-sage-50">
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
                             <img 
-                                src={displaySrc}  // Use the computed displaySrc
+                                src={displaySrc}
                                 alt={plant.TagName || ''}
                                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                                 onError={() => setImageError(true)}
                             />
-                            {/* Plant Status Badges */}
                             <div className="absolute top-2 left-2 flex flex-wrap gap-1">
                                 {plant.Winterizing && (
                                     <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
@@ -130,7 +149,6 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                                     </span>
                                 )}
                             </div>
-                            {/* Icons */}
                             <div className="absolute bottom-2 right-2 z-20 flex gap-1">
                                 {getNativeIcon()}
                                 {getDeerResistantIcon()}
@@ -144,7 +162,6 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                     )}
                     
                     <div className="p-5 space-y-4">
-                        {/* Title Section */}
                         <div className="border-b border-sage-100 pb-3">
                             <h3 className="text-xl font-semibold text-sage-800 mb-1 line-clamp-2">
                                 {plant.TagName}
@@ -154,15 +171,12 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                             </p>
                         </div>
 
-                        {/* Main Info Grid */}
                         <div className="grid grid-cols-2 gap-2 text-sm">
-                            {/* Growing Conditions */}
                             <div className="col-span-2 flex items-center justify-between">
                                 <span>{getSunExposure()}</span>
                                 <span title={plant.GrowthRate}>{getGrowthRateIcon(plant.GrowthRate)}</span>
                             </div>
                             
-                            {/* Department & Zones */}
                             <div className="col-span-2 flex flex-wrap gap-2">
                                 {plant.Department && (
                                     <span className="bg-sage-50 text-sage-700 px-2 py-1 rounded-full text-xs">
@@ -176,21 +190,18 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                                 )}
                             </div>
 
-                            {/* Sizes */}
                             {plant.MatureSize && (
                                 <div className="col-span-2 text-sage-700">
                                     <span className="font-medium">Mature Size:</span> {plant.MatureSize}
                                 </div>
                             )}
                             
-                            {/* Notes Preview */}
                             {plant.Notes && (
                                 <div className="col-span-2 text-sage-600 line-clamp-2 text-xs italic">
                                     {plant.Notes}
                                 </div>
                             )}
 
-                            {/* Price & Size Info */}
                             <div className="col-span-2 flex justify-between items-center pt-2 border-t border-sage-100">
                                 {plant.Price && (
                                     <span className="text-lg font-semibold text-sage-700">

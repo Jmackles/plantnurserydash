@@ -5,38 +5,114 @@ import { BenchTags } from '../../lib/types';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { Toast } from '../../components/shared/Toast';
 import { useToast } from '../../hooks/useToast';
+import { Carousel } from 'react-responsive-carousel';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
+import { fetchImageFromGoogle } from '../../lib/imageUtils';
+import PlantDetailsHeader from '../../components/PlantDetailsHeader';
+import PlantDetailsInfo from '../../components/PlantDetailsInfo';
+import PlantDetailsPhotos from '../../components/PlantDetailsPhotos';
 
 const PlantDetails = () => {
-    const { id } = useParams();
+    const params = useParams();
+    const id = params?.id?.toString();
+    console.log('Component mounted with raw params:', params); // Add raw params logging
+
     const [plant, setPlant] = useState<BenchTags | null>(null);
     const [loading, setLoading] = useState(true);
     const { showToast, toast } = useToast();
-
-    const translateValue = (value: boolean | undefined) => {
-        if (value === undefined) return 'N/A';
-        return value ? 'Yes' : 'No';
-    };
+    const [images, setImages] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchPlant = async () => {
             setLoading(true);
+            const apiUrl = `/api/knowledgebase/${id}`;
+            console.log('Fetching from URL:', apiUrl);
+
             try {
-                const response = await fetch(`/api/knowledgebase/${id}`);
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+                
+                console.log('Response status:', response.status);
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
                 }
+
                 const data = await response.json();
+                console.log('Received data:', data);
+
+                if (!data || !data.TagName) {
+                    throw new Error('Invalid plant data received');
+                }
+
                 setPlant(data);
+                setImages(data.ImageUrls || []);
             } catch (error) {
-                console.error('Error fetching plant:', error);
-                showToast('Error loading plant details. Please try again.', 'error');
+                console.error('Fetch error:', error);
+                showToast(error.message, 'error');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchPlant();
+        if (id) {
+            fetchPlant();
+        } else {
+            console.error('No ID provided in params');
+            setLoading(false);
+        }
     }, [id]);
+
+    // Add loading state debug
+    console.log('Current state:', { loading, plantExists: !!plant, imagesCount: images.length });
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        const formData = new FormData();
+        formData.append('plantId', id as string);
+        for (const file of files) {
+            formData.append('images', file);
+        }
+
+        try {
+            const response = await fetch(`/api/knowledgebase/${id}/image`, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload images');
+            }
+
+            const data = await response.json();
+            setImages((prevImages) => [...prevImages, ...data.imagePaths]);
+        } catch (error) {
+            console.error('Error uploading images:', error);
+            showToast('Error uploading images. Please try again.', 'error');
+        }
+    };
+
+    const handleImageReorder = (newOrder: string[]) => {
+        setImages(newOrder);
+        // Save new order to the backend
+        fetch(`/api/knowledgebase/${id}/image/order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: newOrder }),
+        }).catch((error) => {
+            console.error('Error saving image order:', error);
+            showToast('Error saving image order. Please try again.', 'error');
+        });
+    };
 
     if (loading) {
         return <LoadingSpinner />;
@@ -46,42 +122,17 @@ const PlantDetails = () => {
         return <div className="text-center py-8 text-gray-500">Plant not found</div>;
     }
 
-    const fallbackImageUrl = '/plantimage.jpg';
-
     return (
         <main className="p-6 max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-sage-700 mb-8">{plant.TagName}</h1>
-            <div className="bg-white shadow-md rounded-lg p-6">
-                <div className="relative w-32 h-32 mb-4">
-                    <img 
-                        src={plant.ImageUrl || fallbackImageUrl}
-                        alt={plant.TagName || 'Plant Image'}
-                        className="w-32 h-32 object-cover rounded-lg"
-                        onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = fallbackImageUrl;
-                        }}
-                    />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <p><strong>Botanical:</strong> {plant.botanical_id}</p>
-                    <p><strong>Department:</strong> {plant.Department}</p>
-                    <p><strong>Sun:</strong> {translateValue(plant.FullSun)}</p>
-                    <p><strong>Part Sun:</strong> {translateValue(plant.PartSun)}</p>
-                    <p><strong>Shade:</strong> {translateValue(plant.Shade)}</p>
-                    <p><strong>Growth Rate:</strong> {plant.GrowthRate}</p>
-                    <p><strong>Mature Size:</strong> {plant.MatureSize}</p>
-                    <p><strong>Winterizing:</strong> {plant.Winterizing}</p>
-                    <p><strong>Special Care/Attributes:</strong> {plant.Notes || 'N/A'}</p>
-                    <p><strong>Price:</strong> {plant.Price}</p>
-                    <p><strong>Size:</strong> {plant.Size}</p>
-                    <p><strong>Pot Size:</strong> {plant.PotSize}</p>
-                    <p><strong>Pot Type:</strong> {plant.PotType}</p>
-                </div>
-            </div>
+            <PlantDetailsHeader plant={plant} />
+            <PlantDetailsInfo plant={plant} />
+            <PlantDetailsPhotos 
+                images={images} 
+                onImageUpload={handleImageUpload} 
+                onImageReorder={handleImageReorder} 
+            />
             {toast && (
-                <Toast message={toast.message} type={toast.type} />
+                <Toast message={toast.message} type={toast.type} onClose={() => {}} />
             )}
         </main>
     );

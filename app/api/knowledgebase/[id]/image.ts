@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
-import sharp from 'sharp';
+import formidable from 'formidable';
+import fs from 'fs';
 
 let db: sqlite3.Database | null = null;
 
@@ -16,56 +17,63 @@ async function getDbConnection() {
     return db;
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-    try {
-        const { id } = params;
-        const db = await getDbConnection();
+export async function POST(req: NextRequest) {
+    const db = await getDbConnection();
+    const form = new formidable.IncomingForm();
 
-        const formData = await req.formData();
-        const imageFile = formData.get('image') as File;
+    return new Promise((resolve, reject) => {
+        form.parse(req, async (err, fields, files) => {
+            if (err) {
+                reject(NextResponse.json({ error: 'Failed to parse form data' }, { status: 500 }));
+                return;
+            }
 
-        if (!imageFile) {
-            return NextResponse.json({ error: 'No image file provided' }, { status: 400 });
-        }
+            const plantId = fields.plantId;
+            const imageFiles = files.images;
 
-        const buffer = await imageFile.arrayBuffer();
-        const imageData = Buffer.from(buffer);
+            if (!plantId || !imageFiles) {
+                reject(NextResponse.json({ error: 'Missing plant ID or images' }, { status: 400 }));
+                return;
+            }
 
-        // Process the image
-        let processedImageBuffer;
-        try {
-            processedImageBuffer = await sharp(imageData)
-                .rotate() // Auto-rotate based on EXIF
-                .resize(800, 600, {
-                    fit: 'inside',
-                    withoutEnlargement: true,
-                    fastShrinkOnLoad: true
-                })
-                .toFormat('jpeg', {
-                    quality: 80,
-                    mozjpeg: true
-                })
-                .toBuffer();
+            try {
+                // Ensure the PlantImages table exists
+                await db.run(`
+                    CREATE TABLE IF NOT EXISTS PlantImages (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        plantId INTEGER,
+                        imagePath TEXT,
+                        imageOrder INTEGER,
+                        FOREIGN KEY (plantId) REFERENCES BenchTags(ID)
+                    )
+                `);
 
-        } catch (error) {
-            console.error('Error processing image:', error);
-            return NextResponse.json(
-                { error: 'Failed to process image. Please ensure it is a valid image file.' },
-                { status: 400 }
-            );
-        }
+                const imagePaths = [];
+                if (Array.isArray(imageFiles)) {
+                    for (const file of imageFiles) {
+                        const newPath = path.join(process.cwd(), 'public/uploads', file.newFilename);
+                        fs.renameSync(file.filepath, newPath);
+                        imagePaths.push(`/uploads/${file.newFilename}`);
+                    }
+                } else {
+                    const newPath = path.join(process.cwd(), 'public/uploads', imageFiles.newFilename);
+                    fs.renameSync(imageFiles.filepath, newPath);
+                    imagePaths.push(`/uploads/${imageFiles.newFilename}`);
+                }
 
-        await db.run(`
-            UPDATE BenchTags
-            SET Image = ?
-            WHERE ID = ?
-        `, processedImageBuffer, id);
+                // Insert each image path into the PlantImages table
+                for (const imagePath of imagePaths) {
+                    await db.run(
+                        `INSERT INTO PlantImages (plantId, imagePath, imageOrder) VALUES (?, ?, ?)`,
+                        [plantId, imagePath, 0]
+                    );
+                }
 
-        const imageUrl = `data:image/jpeg;base64,${processedImageBuffer.toString('base64')}`;
-
-        return NextResponse.json({ imageUrl });
-    } catch (error: unknown) {
-        console.error('Error uploading image:', error);
-        return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
-    }
+                resolve(NextResponse.json({ success: true, imagePaths }));
+            } catch (error) {
+                console.error('Error saving images:', error);
+                reject(NextResponse.json({ error: 'Failed to save images' }, { status: 500 }));
+            }
+        });
+    });
 }

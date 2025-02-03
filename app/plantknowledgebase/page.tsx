@@ -156,9 +156,6 @@ const PlantKnowledgeBase = () => {
                 filters.winterizing.includes(String((plant as any).Winterizing || ''))
             );
         }
-                filters.winterizing.includes(plant.Winterizing || '')
-            );
-        }
         // Filter by Carolina native: '1' means native, '0' means not native.
         if (filters.carNative.length > 0) {
             list = list.filter(plant => {
@@ -232,7 +229,7 @@ const PlantKnowledgeBase = () => {
                     <div className="bg-white rounded-xl shadow-sm p-6 border border-sage-100
                                   transition-shadow duration-200 hover:shadow-md">
                         {loading ? (
-                            <LoadingSkeleton />
+                            <LoadingSpinner /> // replaced LoadingSkeleton with LoadingSpinner
                         ) : filteredPlants.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
                                 <p className="text-xl">No plants found</p>

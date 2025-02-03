@@ -22,7 +22,7 @@ const PlantKnowledgeBase = () => {
     const [sortField, setSortField] = useState<'TagName' | 'Botanical' | 'DeerResistance' | 'Warranty' | 'Classification' | 'Department'>('TagName');
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState<FilterState>({
+    const initialFilterState: FilterState = {
         sunExposure: [],
         foliageType: [],
         lifespan: [],
@@ -32,7 +32,8 @@ const PlantKnowledgeBase = () => {
         searchQuery: '',
         winterizing: [],
         carNative: []
-    });
+    };
+    const [filters, setFilters] = useState<FilterState>(initialFilterState);
     const { showToast } = useToast();
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(true);
@@ -134,6 +135,19 @@ const PlantKnowledgeBase = () => {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [currentPage, totalPages]);
 
+    // Load saved filters from localStorage on mount
+    useEffect(() => {
+        const storedFilters = localStorage.getItem('plantFilters');
+        if (storedFilters) {
+            setFilters(JSON.parse(storedFilters));
+        }
+    }, []);
+
+    // Save filters to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('plantFilters', JSON.stringify(filters));
+    }, [filters]);
+
     const filteredPlants = useMemo(() => {
         let list = plants;
         // Filter by searchQuery (checks TagName and Botanical)
@@ -175,24 +189,34 @@ const PlantKnowledgeBase = () => {
                 isVisible={isFilterPanelVisible}
                 toggleVisibility={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
             />
-            <main className={`flex-1 p-8 transition-all duration-300 ${isFilterPanelVisible ? 'ml-80' : 'ml-0'} max-w-[calc(100vw-320px)] min-h-screen`}>
+            <main className={`flex-1 p-8 transition-all duration-300 ${isFilterPanelVisible ? 'lg:ml-80' : 'ml-0'} w-full min-h-screen`}>
                 <div className="max-w-7xl mx-auto space-y-6">
-                    <h1 className="text-4xl font-bold text-sage-700 tracking-tight">
+                    <h1 className="text-4xl font-bold text-[hsl(var(--accent-hsl))] tracking-tight">
                         Plant Knowledge Base
                     </h1>
-
+                    {/* Show Filters button if filter panel is hidden */}
+                    {!isFilterPanelVisible && (
+                        <div className="mb-4">
+                            <button 
+                                onClick={() => setIsFilterPanelVisible(true)}
+                                className="bg-[hsl(var(--accent-hsl))] text-[hsl(var(--white-hsl))] rounded-lg px-4 py-2 border border-[hsl(var(--accent-hsl))] hover:bg-[hsl(var(--safeDarkAccent-hsl))] transition"
+                            >
+                                Show Filters
+                            </button>
+                        </div>
+                    )}
                     {/* Controls Section */}
                     <div className="sticky top-4 z-10 bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-sm 
                                   border border-sage-100 transition-shadow duration-200 hover:shadow-md">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center space-x-4">
-                                <label className="text-sage-600 font-medium">Sort by:</label>
+                                <label className="text-[hsl(var(--darkAccent-hsl))] font-medium">Sort by:</label>
                                 <select 
                                     value={sortField} 
                                     onChange={(e) => setSortField(e.target.value as typeof sortField)}
                                     className="border border-sage-200 rounded-lg p-2 bg-white hover:border-sage-300 
-                                             focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent
-                                             transition-all duration-200"
+                                               focus:outline-none focus:ring-2 focus:ring-[hsl(var(--accent-hsl))] focus:border-transparent
+                                               transition-all duration-200"
                                 >
                                     <option value="TagName">Tag Name</option>
                                     <option value="Botanical">Botanical Name</option>
@@ -205,19 +229,19 @@ const PlantKnowledgeBase = () => {
                             <div className="flex items-center space-x-2">
                                 <button 
                                     onClick={() => setViewMode('list')}
-                                    className={`px-4 py-2 rounded-lg transition-all duration-200
-                                              ${viewMode === 'list' 
-                                                ? 'bg-sage-600 text-white shadow-md' 
-                                                : 'bg-white border border-sage-200 text-sage-600 hover:bg-sage-50'}`}
+                                    className={`rounded-lg transition-all duration-200 border px-4 py-2 
+                                                ${viewMode === 'list' 
+                                                    ? 'bg-[hsl(var(--accent-hsl))] text-[hsl(var(--white-hsl))] shadow-md'
+                                                    : 'bg-white border-sage-200 text-[hsl(var(--darkAccent-hsl))] hover:bg-sage-50'}`}
                                 >
                                     List View
                                 </button>
                                 <button 
                                     onClick={() => setViewMode('card')}
-                                    className={`px-4 py-2 rounded-lg transition-all duration-200
-                                              ${viewMode === 'card' 
-                                                ? 'bg-sage-600 text-white shadow-md' 
-                                                : 'bg-white border border-sage-200 text-sage-600 hover:bg-sage-50'}`}
+                                    className={`rounded-lg transition-all duration-200 border px-4 py-2 
+                                                ${viewMode === 'card' 
+                                                    ? 'bg-[hsl(var(--accent-hsl))] text-[hsl(var(--white-hsl))] shadow-md'
+                                                    : 'bg-white border-sage-200 text-[hsl(var(--darkAccent-hsl))] hover:bg-sage-50'}`}
                                 >
                                     Card View
                                 </button>

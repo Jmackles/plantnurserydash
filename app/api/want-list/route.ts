@@ -4,39 +4,116 @@ import sqlite3 from 'sqlite3';
 import path from 'path';
 import { WantList } from '../../lib/types';
 
-let db: sqlite3.Database | null = null;
-
 async function getDbConnection() {
-    if (!db) {
-        db = new sqlite3.Database(path.join(process.cwd(), 'app/database/database.sqlite'));
+    try {
+        return await open({
+            filename: path.join(process.cwd(), 'app/database/database.sqlite'),
+            driver: sqlite3.Database
+        });
+    } catch (error) {
+        console.error('Database connection error:', error);
+        throw error;
     }
-    return db;
 }
 
 export async function GET(req: NextRequest) {
+    let db = null;
     try {
-        const db = await getDbConnection();
+        db = await getDbConnection();
+        console.log('Database connected successfully');
 
-        const wantListEntries = await db.all<WantList[]>(`
+        // First get the want list entries
+        const wantListEntries = await db.all(`
             SELECT 
-                id,
-                customer_id,
-                initial,
-                notes,
-                is_closed,
-                spoken_to,
-                created_at_text,
-                closed_by
-            FROM want_list
+                w.id,
+                w.customer_id,
+                w.initial,
+                w.notes,
+                w.is_closed,
+                w.spoken_to,
+                w.created_at_text,
+                w.closed_by,
+                c.first_name,
+                c.last_name
+            FROM want_list w
+            LEFT JOIN customers c ON w.customer_id = c.id
+            ORDER BY w.created_at_text DESC
         `);
 
-        return NextResponse.json({ data: wantListEntries });
-    } catch (error: unknown) {
+        console.log('Found want list entries:', wantListEntries.length);
+
+        // For each want list entry, get its plants
+        const entriesWithPlants = await Promise.all(wantListEntries.map(async (entry) => {
+            try {
+                // Get legacy plants
+                const oldPlants = await db.all(`
+                    SELECT 
+                        id,
+                        want_list_entry_id,
+                        name,
+                        size,
+                        quantity,
+                        'legacy' as status,
+                        NULL as plant_catalog_id,
+                        NULL as requested_at,
+                        NULL as fulfilled_at
+                    FROM plants_old
+                    WHERE want_list_entry_id = ?
+                `, [entry.id]);
+
+                // Get new plants
+                const newPlants = await db.all(`
+                    SELECT 
+                        id,
+                        want_list_entry_id,
+                        name,
+                        size,
+                        quantity,
+                        status,
+                        plant_catalog_id,
+                        requested_at,
+                        fulfilled_at
+                    FROM plants
+                    WHERE want_list_entry_id = ?
+                `, [entry.id]);
+
+                return {
+                    ...entry,
+                    plants: [...oldPlants, ...newPlants]
+                };
+            } catch (error) {
+                console.error(`Error fetching plants for entry ${entry.id}:`, error);
+                return {
+                    ...entry,
+                    plants: []
+                };
+            }
+        }));
+
+        console.log('Successfully processed all entries');
+
+        return NextResponse.json({
+            success: true,
+            data: entriesWithPlants
+        });
+
+    } catch (error) {
         console.error('Database error:', error);
         return NextResponse.json({
+            success: false,
             error: 'Failed to fetch want list entries',
             details: error instanceof Error ? error.message : 'Unknown error',
+            data: []
         }, { status: 500 });
+    } finally {
+        if (db) {
+            try {
+                await db.close();
+                console.log('Database connection closed');
+            } catch (error) {
+                console.error('Error closing database:', error);
+            }
+        }
     }
 }
 

@@ -106,6 +106,10 @@ const PlantKnowledgeBase = () => {
     }, [currentPage, sortField, filters]);
 
     useEffect(() => {
+        console.log('Plants:', plants);
+    }, [plants]);
+
+    useEffect(() => {
         const handleKeyPress = (e: KeyboardEvent) => {
             if (e.key === 'ArrowLeft' && currentPage > 1) {
                 setCurrentPage(prev => prev - 1);

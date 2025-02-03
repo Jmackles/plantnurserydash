@@ -19,19 +19,18 @@ export const fetchCustomers = async (): Promise<Customer[]> => {
     }
 };
 
-export const fetchWantListEntries = async () => {
+export const fetchWantListEntries = async (): Promise<WantList[]> => {
     try {
         const res = await fetch('/api/want-list');
         if (!res.ok) {
-            const error = await res.text();
-            throw new Error(error || 'Failed to fetch want list entries');
+            throw new Error(`HTTP error! status: ${res.status}`);
         }
-        const contentType = res.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            const response = await res.json();
-            return response.data || [];
+        const json = await res.json();
+        if (json && json.success && Array.isArray(json.data)) {
+            return json.data;
         } else {
-            throw new Error('Invalid response format');
+            console.warn('Unexpected data format:', json);
+            return [];
         }
     } catch (error) {
         console.error('Error fetching want list entries:', error);

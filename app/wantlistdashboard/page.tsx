@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { WantList, Customer, Plant } from './../lib/types';
 import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } from './../lib/api';
+import WantListCard from './../components/cards/WantListCard'; // Add this import
 
 const WantListDashboard = () => {
     const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
@@ -36,7 +37,12 @@ const WantListDashboard = () => {
     const fetchEntries = async () => {
         try {
             const entries = await fetchWantListEntries();
-            setWantListEntries(Array.isArray(entries) ? entries : []);
+            if (Array.isArray(entries)) {
+                setWantListEntries(entries);
+            } else {
+                console.warn('Unexpected data format:', entries);
+                setWantListEntries([]);
+            }
         } catch (error) {
             console.error('Error:', error);
             setWantListEntries([]);
@@ -56,6 +62,10 @@ const WantListDashboard = () => {
         fetchEntries();
         fetchCustomerList();
     }, []);
+
+    useEffect(() => {
+        console.log('Want list entries:', wantListEntries);
+    }, [wantListEntries]);
 
     const closeModal = () => {
         setSelectedEntry(null);
@@ -219,6 +229,16 @@ const WantListDashboard = () => {
                     {/* Render form for adding new entry */}
                 </div>
             )}
+
+            <div>
+                {wantListEntries.length === 0 ? (
+                    <p>No want list entries found.</p>
+                ) : (
+                    wantListEntries.map(entry => (
+                        <WantListCard key={entry.id} entry={entry} onClick={() => setSelectedEntry(entry)} />
+                    ))
+                )}
+            </div>
         </main>
     );
 };

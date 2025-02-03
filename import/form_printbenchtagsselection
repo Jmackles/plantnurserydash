@@ -26,10 +26,10 @@ Private Sub UpdateSearch()
     selStart = Me.activeControl.selStart
     
     
-    If activeControl = TagNameSearchBox Then
-        tag = Me.TagNameSearchBox.Text
+    If activeControl = tag_nameSearchBox Then
+        tag = Me.tag_nameSearchBox.Text
     Else
-        tag = Nz(Me.TagNameSearchBox.Value, vbNullString)
+        tag = Nz(Me.tag_nameSearchBox.Value, vbNullString)
     End If
     
     
@@ -62,7 +62,7 @@ End Sub
 ' updates the data filter based on user's search terms
 Private Sub DoSearch(tag As String, Botanical As String, Department As String)
     Dim criteria As String
-    Dim tagNameCriteria As String
+    Dim tag_nameCriteria As String
     Dim botanicalNameCriteria As String
     Dim departmentCriteria As String
     Dim userInput As String
@@ -74,8 +74,8 @@ Private Sub DoSearch(tag As String, Botanical As String, Department As String)
         userInput = EscapeApostrophes(userInput)                                                                ' escape out any apostrophes in user input (i.e. ')
         userInputArray = Split(userInput)                                                                       ' get an array of words from the input
         For Each word In userInputArray                                                                         ' iterate through the list of words
-            If Len(tagNameCriteria) <> 0 Then tagNameCriteria = tagNameCriteria & " And "                       ' append an "And" if needed
-            tagNameCriteria = tagNameCriteria & "TagName Like '*" & word & "*'"                                 ' add the word to the criteria
+            If Len(tag_nameCriteria) <> 0 Then tag_nameCriteria = tag_nameCriteria & " And "                       ' append an "And" if needed
+            tag_nameCriteria = tag_nameCriteria & "tag_name Like '*" & word & "*'"                                 ' add the word to the criteria
         Next
     End If
         
@@ -97,7 +97,7 @@ Private Sub DoSearch(tag As String, Botanical As String, Department As String)
     
     
     ' build the final filter criteria
-    criteria = tagNameCriteria                                                                                  ' add tag name
+    criteria = tag_nameCriteria                                                                                  ' add tag name
     If Len(criteria) <> 0 And Len(botanicalNameCriteria) <> 0 Then criteria = criteria & " And "                ' append an "And" if needed
     criteria = criteria & botanicalNameCriteria                                                                 ' add the botanical name
     If Len(criteria) <> 0 And Len(departmentCriteria) <> 0 Then criteria = criteria & " And "                   ' append an "And" if needed
@@ -116,7 +116,7 @@ Private Sub ClearAllSelections()
     db.Execute ("UPDATE BenchTags SET BenchTags.Print = False;")
     Me.Requery
     Call UpdateSelectedCount
-    Me.TagNameSearchBox.SetFocus
+    Me.tag_nameSearchBox.SetFocus
 End Sub
 
 
@@ -154,17 +154,17 @@ Private Sub Form_Load()
     ' make sure the checkbox is visible (gets hidden during searching if no records are found)
     Me.PrintCheckbox.Visible = True
     
-    Me.TagNameSearchBox.SetFocus
+    Me.tag_nameSearchBox.SetFocus
 End Sub
 
 
-Private Sub TagNameSearchBox_Change()
-    selStart = Me.TagNameSearchBox.selStart
+Private Sub tag_nameSearchBox_Change()
+    selStart = Me.tag_nameSearchBox.selStart
 End Sub
 
 
-Private Sub TagNameSearchBox_LostFocus()
-    Set lastControl = Me.TagNameSearchBox
+Private Sub tag_nameSearchBox_LostFocus()
+    Set lastControl = Me.tag_nameSearchBox
 End Sub
 
 
@@ -199,13 +199,13 @@ Private Sub SearchButton_Click()
     Me.PrintCheckbox.Visible = True
     
     ' if all search boxes are empty, clear filter and do nothing further
-    If IsNull(Me.TagNameSearchBox) And IsNull(Me.BotanicalNameSearchBox) And IsNull(Me.DepartmentCombo) Then
+    If IsNull(Me.tag_nameSearchBox) And IsNull(Me.BotanicalNameSearchBox) And IsNull(Me.DepartmentCombo) Then
         Call ClearFilter
         lastControl.SetFocus
         Exit Sub
     End If
     
-    tag = Nz(Me.TagNameSearchBox, "")
+    tag = Nz(Me.tag_nameSearchBox, "")
     Botanical = Nz(Me.BotanicalNameSearchBox, "")
     Department = Nz(Me.DepartmentCombo, "")
 
@@ -228,10 +228,10 @@ End Sub
 Private Sub ClearSearchButton_Click()
     Call ClearFilter
 
-    Me.TagNameSearchBox.Value = ""
+    Me.tag_nameSearchBox.Value = ""
     Me.BotanicalNameSearchBox.Value = ""
     Me.DepartmentCombo.Value = ""
-    Me.TagNameSearchBox.SetFocus
+    Me.tag_nameSearchBox.SetFocus
 End Sub
 
 
@@ -273,7 +273,7 @@ Private Sub SelectAllButton_Click()
     db.Execute ("UPDATE BenchTags SET BenchTags.Print = True" & criteria)
     Me.Requery
     Call UpdateSelectedCount
-    Me.TagNameSearchBox.SetFocus
+    Me.tag_nameSearchBox.SetFocus
     
 End Sub
 

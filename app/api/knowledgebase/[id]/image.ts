@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { open } from 'sqlite';
+import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import formidable from 'formidable';
 import fs from 'fs';
+import * as http from 'http';
 
-let db: sqlite3.Database | null = null;
+let db: Database | null = null;
 
 async function getDbConnection() {
     if (!db) {
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     const form = new formidable.IncomingForm();
 
     return new Promise((resolve, reject) => {
-        form.parse(req, async (err, fields, files) => {
+        form.parse(req as unknown as http.IncomingMessage, async (err, fields, files) => {
             if (err) {
                 reject(NextResponse.json({ error: 'Failed to parse form data' }, { status: 500 }));
                 return;

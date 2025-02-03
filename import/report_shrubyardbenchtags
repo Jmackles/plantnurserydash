@@ -15,7 +15,7 @@ Private Sub Detail_Format(Cancel As Integer, FormatCount As Integer)
     Dim strID As Integer
     
     ' Data vars
-    Dim strTagName As String
+    Dim strtag_name As String
     Dim strBotanical As String
     Dim boolNoWarranty As Boolean
     Dim strDeerResistance As String
@@ -49,7 +49,7 @@ Private Sub Detail_Format(Cancel As Integer, FormatCount As Integer)
     rst.Open strSQL, conn, adOpenStatic                         ' populate the recordset object with the data
     
     ' Extract the data and store as vars
-    strTagName = IIf(IsNull(rst!TagName) Or rst!TagName = "", "???", rst!TagName)
+    strtag_name = IIf(IsNull(rst!tag_name) Or rst!tag_name = "", "???", rst!tag_name)
     strBotanical = IIf(IsNull(rst!Botanical) Or rst!Botanical = "", "", rst!Botanical)
     boolNoWarranty = rst!NoWarranty
     strDeerResistance = IIf(IsNull(rst!DeerResistance) Or rst!DeerResistance = "", "TBD", rst!DeerResistance)

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { open } from 'sqlite';
+import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 import sharp from 'sharp';
 
-let db: sqlite3.Database | null = null;
+let db: Database | null = null;
 
 async function getDbConnection() {
   if (!db) {

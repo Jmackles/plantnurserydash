@@ -2,120 +2,52 @@ export interface Customer {
     id: number;
     first_name: string;
     last_name: string;
-    phone: string;
-    email: string;
-    is_active: boolean;
-    notes: string;
-}
-
-export interface WantListPlant {
-    name: string;
-    size: string;
-    quantity: number;
-}
-
-export interface Plant {
-    id?: number;
-    want_list_entry_id?: number;
-    name: string;
-    size: string;
-    quantity: number;
-}
-
-export interface WantListEntry {
-    id: number;
-    customer_id: number;
-    initial: string;
-    notes: string;
-    plants: Plant[];
-    created_at: string;
-    is_closed?: boolean;
-    closed_by?: string;
-    spoken_to?: string;
-}
-
-export interface FormData {
-    firstName: string;
-    lastName: string;
-    phone: string;
-    email: string;
-    initial: string;
+    phone?: string;
+    email?: string;
+    is_active?: boolean;
     notes?: string;
-    plants: WantListPlant[];
-    spokenTo?: string;
-    customer_id?: number;
 }
 
-export interface ApiResponse {
-    success: boolean;
-    error?: string;
-    conflict?: boolean;
-    message?: string;
-    customer?: Customer;
+export interface SqliteSequence {
+    name?: string;
+    seq?: string;
 }
 
-export interface DashboardMetrics {
-    totalCustomers: number;
-    activeWantlists: number;
-    totalPlants: number;
-    pendingOrders: number;
-    averagePlantsPerWantList: number;
-    totalOrders: number;
-    completedOrders: number;
-}
-
-export interface ActivityItem {
-    type: 'wantlist' | 'customer' | 'order';
-    customer: string;
+export interface WantList {
+    id: number;
     customer_id: number;
-    time: string;
-    action: string;
+    initial: string;
+    notes: string;
+    is_closed: boolean;
+    spoken_to: string;
+    created_at_text: string;
+    closed_by: string;
+    plants?: Plant[];
 }
 
-export interface BenchTagImages {
-    TagName?: string;
+export interface PlantsOld {
+    id: number;
+    want_list_entry_id?: number;
+    name?: string;
+    size?: string;
+    quantity?: number;
+}
+
+export interface BenchtagsBackup {
+    ID?: number;
+    tag_name?: string;
     Botanical?: string;
-    Image?: Blob;
-}
-
-export interface Genus {
-    id: number;
-    genus_name: string;
-}
-
-export interface Species {
-    id: number;
-    species_name: string;
-    genus_id: number;
-}
-
-export interface Botanical {
-    id: number;
-    botanical_name: string;
-    species_id: number;
-}
-
-export interface CommonNames {
-    id: number;
-    common_name: string;
-    botanical_id: number;
-}
-
-export interface BenchTags {
-    ID: number;
-    TagName?: string;
-    botanical_id?: number; // Foreign key to the Botanical table
     Department?: string;
     Classification?: string;
-    NoWarranty: boolean;
+    NoWarranty?: number;
     DeerResistance?: string;
     Nativity?: string;
-    CarNative: boolean;
-    MeltingSun: 0 | 1;
-    FullSun: 0 | 1;
-    PartSun: 0 | 1;
-    Shade: 0 | 1;
-    GrowthRate: string;
+    CarNative?: number;
+    MeltingSun?: number;
+    FullSun?: number;
+    PartSun?: number;
+    Shade?: number;
+    GrowthRate?: string;
     AvgSize?: string;
     MaxSize?: string;
     MatureSize?: string;
@@ -123,7 +55,7 @@ export interface BenchTags {
     ZoneMin?: string;
     Winterizing?: string;
     Notes?: string;
-    ShowTopNotes: boolean;
+    ShowTopNotes?: number;
     TopNotes?: string;
     Image?: string;
     Price?: string;
@@ -134,112 +66,87 @@ export interface BenchTags {
     PotShape?: string;
     PotType?: string;
     PotCustomText?: string;
-    FlatPricing: boolean;
+    FlatPricing?: number;
     FlatCount?: number;
     FlatPrice?: string;
-    Print: boolean;
-    Sun?: boolean;
-    SpecialCareAttributes?: string;
-    ImageUrls?: string[];
-    TemporaryImage?: boolean; // Flag for temporary images
+    Print?: number;
+    botanical_id?: number;
 }
 
-export interface CheckTable {
-    ID: number;
-    Needs: string | number | boolean | object;
-    New: boolean;
-    'Needs Info?': boolean;
-}
-
-export interface GrowthRateOptions {
-    ID: number;
-    Description: string;
-    GrowthRateRange: string;
-}
-
-export interface WinterizingOptions {
-    Type?: string;
-}
-
-export interface PlantKnowledgeBase {
+export interface PlantCatalog {
     id: number;
-    common_name: string;
-    botanical_name: string;
-    department: string;
+    tag_name?: string;
+    botanical?: string;
+    department?: string;
     classification?: string;
+    no_warranty: boolean;
     deer_resistance?: string;
-    native?: boolean;
-    full_sun?: boolean;
-    part_sun?: boolean;
-    shade?: boolean;
-    growth_rate?: string;
+    nativity?: string;
+    car_native: boolean;
+    melting_sun: boolean;
+    full_sun: boolean;
+    part_sun: boolean;
+    shade: boolean;
+    growth_rate: string;
+    avg_size?: string;
+    max_size?: string;
     mature_size?: string;
-    zone_min?: number;
     zone_max?: number;
+    zone_min?: number;
     winterizing?: string;
     notes?: string;
-    image_url?: string;
-    price?: string;
+    show_top_notes: boolean;
+    top_notes?: string;
+    price?: number;
     size?: string;
+    pot_details_id?: number;
+    flat_pricing: boolean;
+    flat_count?: number;
+    flat_price?: number;
+    print: boolean;
+    botanical_id?: number;
+}
+
+export interface PotDetails {
+    id: number;
     pot_size?: string;
+    pot_size_unit?: string;
+    pot_depth?: string;
+    pot_shape?: string;
     pot_type?: string;
-    created_at: string;
-    updated_at: string;
+    pot_custom_text?: string;
+}
+
+export interface Plant {
+    id: number;
+    want_list_entry_id?: number;
+    name?: string;
+    size?: string;
+    quantity?: number;
+    status?: string;
+    plant_catalog_id?: number;
+    requested_at?: string;
+    fulfilled_at?: string;
 }
 
 export interface KnowledgeBaseResponse {
-    data: BenchTags[];
+    data: PlantCatalog[];
     pagination: {
         total: number;
         page: number;
         limit: number;
         totalPages: number;
     };
-    error?: string;
-    details?: string;
 }
 
 export interface FilterState {
-    searchQuery: string;
     sunExposure: string[];
     foliageType: string[];
     lifespan: string[];
     zones: string[];
     departments: string[];
     botanicalNames: string[];
-    [key: string]: any;
-}
-
-export interface FilterOption {
-    label: string;
-    value: string;
-}
-
-export const filterCategories = {
-    sunExposure: ['Full Sun', 'Part Sun', 'Shade', 'Deep Shade'],
-    foliageType: ['Deciduous', 'Evergreen', 'Semi-evergreen'],
-    lifespan: ['Annual', 'Perennial', 'Tropical'],
-    departments: ['Trees', 'Shrubs', 'Perennials', 'Annuals', 'Herbs', 'Vegetables'],
-} as const;
-
-export interface AllPerennials {
-    ID: number;
-    TagName?: string;
-    Botanical?: string;
-    Department?: string;
-    Classification?: string;
-    Winterizing?: string;
-    NoWarranty: boolean;
-    DeerResistance?: string;
-    CarNative: boolean;
-    MeltingSun: boolean;
-    FullSun: boolean;
-    PartSun: boolean;
-    Shade: boolean;
-    GrowthRate?: string;
-    MatureSize?: string;
-    ZoneMax?: string;
-    ZoneMin?: string;
-    Notes?: string;
-    Image?: Blob;
+    searchQuery: string;
+    winterizing: string[];
+    carNative: string[];
 }

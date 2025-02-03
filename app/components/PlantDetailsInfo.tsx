@@ -1,5 +1,5 @@
 import React from 'react';
-import { BenchTags } from '../../lib/types';
+import { BenchTags } from './../lib/types';
 
 const translateValue = (value: boolean | undefined) => {
     if (value === undefined) return 'N/A';

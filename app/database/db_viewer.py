@@ -39,12 +39,12 @@ class App(tk.Tk):
         tree_frame = ttk.Frame(top_frame)
         tree_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Treeview: first (hidden) column holds the image; second column shows TagName.
-        self.tree = ttk.Treeview(tree_frame, columns=("TagName",), show="tree headings")
+        # Treeview: first (hidden) column holds the image; second column shows tag_name.
+        self.tree = ttk.Treeview(tree_frame, columns=("tag_name",), show="tree headings")
         self.tree.heading("#0", text="Image")
-        self.tree.heading("TagName", text="TagName")
+        self.tree.heading("tag_name", text="tag_name")
         self.tree.column("#0", width=60, anchor='center')
-        self.tree.column("TagName", anchor='w')
+        self.tree.column("tag_name", anchor='w')
         self.tree.bind("<<TreeviewSelect>>", self.on_item_select)
         
         vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
@@ -133,7 +133,7 @@ class App(tk.Tk):
             cursor = conn.cursor()
             offset = self.current_page * PAGE_SIZE
             # Adjusted query to use selected table
-            query = f"SELECT TagName, Image FROM {self.selected_table} ORDER BY TagName LIMIT ? OFFSET ?"
+            query = f"SELECT tag_name, Image FROM {self.selected_table} ORDER BY tag_name LIMIT ? OFFSET ?"
             cursor.execute(query, (PAGE_SIZE, offset))
             rows = cursor.fetchall()
             conn.close()

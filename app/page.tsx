@@ -1,13 +1,13 @@
 "use client"
 import { useEffect, useState } from 'react';
-import { DashboardMetrics, ActivityItem } from '@/app/lib/types';
+import { DashboardMetrics, ActivityItem, Customer, WantList } from '@/app/lib/types';
 import { useFetch } from '@/app/hooks/useFetch';
 import Link from 'next/link';
 import { Tooltip } from 'react-tooltip';
 
 export default function Dashboard() {
     const { data: customers, error: customersError, loading: customersLoading } = useFetch<Customer[]>('/api/customers');
-    const { data: wantListEntries, error: wantListEntriesError, loading: wantListEntriesLoading } = useFetch<WantListEntry[]>('/api/want-list');
+    const { data: wantListEntries, error: wantListEntriesError, loading: wantListEntriesLoading } = useFetch<WantList[]>('/api/want-list');
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
 

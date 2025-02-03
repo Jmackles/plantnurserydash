@@ -1,19 +1,16 @@
-// filename: app/api/benchTags/route.ts
+// filename: app/api/knowledgebase/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
-import { botanicalNameMatches, parseBotanicalName } from '../../lib/utils/botanicalUtils';
+import { PlantCatalog } from '../../lib/types';
 
 let db: sqlite3.Database | null = null;
 
 async function getDbConnection() {
     if (!db) {
-        db = await open({
-            filename: path.join(process.cwd(), 'app/database/database.sqlite'),
-            driver: sqlite3.Database
-        });
+        db = new sqlite3.Database(path.join(process.cwd(), 'app/database/database.sqlite'));
     }
     return db;
 }
@@ -24,32 +21,41 @@ export async function GET(req: NextRequest) {
         const page = parseInt(url.searchParams.get('page') || '1', 10);
         const limit = parseInt(url.searchParams.get('limit') || '10', 10);
         const offset = (page - 1) * limit;
-        
-        // Get filter parameters
+
         const searchQuery = url.searchParams.get('search') || '';
         const sunExposure = url.searchParams.getAll('sunExposure[]');
         const foliageType = url.searchParams.getAll('foliageType[]');
         const departments = url.searchParams.getAll('departments[]');
-        const lifespan = url.searchParams.getAll('lifespan[]');
-        const sortField = url.searchParams.get('sort') || 'TagName';
+        // sortField received as PlantCatalog key; map to legacy DB column
+        const clientSortField = url.searchParams.get('sort') || 'tag_name';
+        const sortMapping: { [key: string]: string } = {
+            tag_name: 'tag_name',
+            botanical: 'Botanical',
+            deer_resistance: 'DeerResistance',
+            no_warranty: 'NoWarranty',
+            classification: 'Classification',
+            department: 'Department'
+        };
+        const sortField = sortMapping[clientSortField] || 'tag_name';
         const botanicalNames = url.searchParams.getAll('botanicalNames[]');
 
         const db = await getDbConnection();
 
-        // Build dynamic WHERE clause
-        let whereConditions = ['1=1'];
-        let params: any[] = [];
+        // Build dynamic WHERE clause using legacy column names
+        const whereConditions = ['1=1'];
+        const params: (string | number)[] = [];
 
         if (searchQuery) {
-            whereConditions.push('(TagName LIKE ? OR Botanical LIKE ?)');
+            whereConditions.push('(tag_name LIKE ? OR Botanical LIKE ?)');
             params.push(`%${searchQuery}%`, `%${searchQuery}%`);
         }
 
         if (sunExposure.length > 0) {
             const sunConditions = [];
-            if (sunExposure.includes('Full Sun')) sunConditions.push('FullSun = 1');
-            if (sunExposure.includes('Part Sun')) sunConditions.push('PartSun = 1');
-            if (sunExposure.includes('Shade')) sunConditions.push('Shade = 1');
+            if (sunExposure.includes('full_sun')) sunConditions.push('FullSun = 1');
+            if (sunExposure.includes('part_sun')) sunConditions.push('PartSun = 1');
+            if (sunExposure.includes('shade')) sunConditions.push('Shade = 1');
+            if (sunExposure.includes('melting_sun')) sunConditions.push('MeltingSun = 1');
             if (sunConditions.length > 0) {
                 whereConditions.push(`(${sunConditions.join(' OR ')})`);
             }
@@ -61,80 +67,69 @@ export async function GET(req: NextRequest) {
         }
 
         if (foliageType.length > 0) {
-            whereConditions.push(`FoliageType IN (${foliageType.map(() => '?').join(',')})`);
+            whereConditions.push(`Classification IN (${foliageType.map(() => '?').join(',')})`);
             params.push(...foliageType);
         }
 
         if (botanicalNames.length > 0) {
-            const botanicalConditions = botanicalNames.map((filterName) => {
-                const parsed = parseBotanicalName(filterName);
-                if (parsed.isHybrid) {
-                    // Match hybrids: both "Genus x" and "Genus x species"
-                    return `(
-                        Botanical LIKE '${parsed.genus} x%' OR 
-                        Botanical LIKE '${parsed.genus} ×%'
-                    )`;
-                } else if (parsed.species) {
-                    // Match specific species, including cultivars
-                    return `(
-                        Botanical LIKE '${parsed.genus} ${parsed.species}%'
-                    )`;
-                } else {
-                    // Match genus only
-                    return `(
-                        Botanical LIKE '${parsed.genus}%' AND
-                        Botanical NOT LIKE '${parsed.genus}aceae%'
-                    )`; // Avoid matching family names
-                }
-            }).join(' OR ');
-
+            const botanicalConditions = botanicalNames.map(() => `Botanical LIKE ?`).join(' OR ');
+            params.push(...botanicalNames.map(name => `%${name}%`));
             whereConditions.push(`(${botanicalConditions})`);
         }
 
-        // Build and execute queries
         const whereClause = whereConditions.join(' AND ');
-        
-        // Get total count with filters
-        const [{ total }] = await db.all<{ total: number }>(
+
+        // Get total count with filters from the new table
+        const totalResult = await db.get<{ total: number }>(
             `SELECT COUNT(*) as total 
-             FROM BenchTags 
+             FROM PlantCatalog 
              WHERE ${whereClause}`, 
             params
         );
+        const total = totalResult?.total || 0;
 
-        // Get filtered and paginated data
+        // Get filtered, paginated data with alias mapping to PlantCatalog
         const plants = await db.all(`
-            SELECT BenchTags.*
-            FROM BenchTags
+            SELECT 
+                id,
+                tag_name,
+                botanical,
+                department,
+                classification,
+                no_warranty,
+                deer_resistance,
+                nativity,
+                car_native,
+                melting_sun,
+                full_sun,
+                part_sun,
+                shade,
+                growth_rate,
+                avg_size,
+                max_size,
+                mature_size,
+                zone_max,
+                zone_min,
+                winterizing,
+                notes,
+                show_top_notes,
+                top_notes,
+                price,
+                size,
+                pot_details_id,
+                flat_pricing,
+                flat_count,
+                flat_price,
+                print,
+                botanical_id
+            FROM PlantCatalog
             WHERE ${whereClause}
             ORDER BY ${sortField} COLLATE NOCASE
             LIMIT ? OFFSET ?
         `, [...params, limit, offset]);
 
-        // Process images correctly
-        const plantsWithImages = await Promise.all(plants.map(async (plant) => {
-            if (plant.Image) {
-                try {
-                    // Convert binary data to base64
-                    const buffer = Buffer.from(plant.Image);
-                    plant.ImageUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`;
-                } catch (error) {
-                    console.error(`Error processing image for plant ${plant.ID}:`, error);
-                    plant.ImageUrl = null;
-                }
-            } else {
-                plant.ImageUrl = null;
-            }
-            // Remove the raw image data from the response
-            delete plant.Image;
-            return plant;
-        }));
-
-        // Debug logs
-        console.log(`Pagination Debug => page=${page}, limit=${limit}, offset=${offset}, total=${total}, plants.length=${plants?.length}`);
-
         return NextResponse.json({
-            data: plantsWithImages,
+            data: plants,
             pagination: {
                 total,
                 page,

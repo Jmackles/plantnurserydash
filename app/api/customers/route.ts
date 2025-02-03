@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
+import { Customer } from '../../lib/types';
 
 export async function GET() {
     try {
@@ -10,7 +11,7 @@ export async function GET() {
             driver: sqlite3.Database
         });
         
-        const customers = await db.all('SELECT * FROM customers');
+        const customers = await db.all<Customer[]>('SELECT * FROM customers');
         await db.close();
         return NextResponse.json(customers);
     } catch (error: unknown) {

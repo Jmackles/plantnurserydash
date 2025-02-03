@@ -1,4 +1,4 @@
-import { Customer, WantListEntry } from "./types";
+import { Customer, WantList } from "./types";
 
 export const fetchCustomers = async (): Promise<Customer[]> => {
     try {
@@ -19,7 +19,7 @@ export const fetchCustomers = async (): Promise<Customer[]> => {
     }
 };
 
-export const fetchWantListEntries = async (): Promise<WantListEntry[]> => {
+export const fetchWantListEntries = async () => {
     try {
         const res = await fetch('/api/want-list');
         if (!res.ok) {
@@ -28,7 +28,8 @@ export const fetchWantListEntries = async (): Promise<WantListEntry[]> => {
         }
         const contentType = res.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-            return res.json();
+            const response = await res.json();
+            return response.data || [];
         } else {
             throw new Error('Invalid response format');
         }
@@ -94,7 +95,7 @@ export const fetchCustomerById = async (id: number): Promise<Customer> => {
     }
 };
 
-export const addWantListEntry = async (entry: Omit<WantListEntry, 'id' | 'customer_first_name' | 'customer_last_name' | 'created_at'>): Promise<WantListEntry> => {
+export const addWantListEntry = async (entry: Omit<WantList, 'id'>): Promise<WantList> => {
     const res = await fetch('/api/want-list', {
         method: 'POST',
         headers: {

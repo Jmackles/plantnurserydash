@@ -1,25 +1,26 @@
 'use client'
-import React, { useState, useEffect } from 'react';
-import WantListCard from '../components/cards/WantListCard';
-import Modal from '../components/shared/Modal';
-import BulkActionsBar from '../components/shared/BulkActionsBar';
-import { fetchWantListEntries, fetchCustomers, addWantListEntry, addCustomer } from '../lib/api';
-import { WantListEntry, Plant, Customer } from '../lib/types';
+
+import { useState, useEffect } from 'react';
+import { WantList, Customer, Plant } from './../lib/types';
+import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } from './../lib/api';
 
 const WantListDashboard = () => {
-    const [wantListEntries, setWantListEntries] = useState<WantListEntry[]>([]);
+    const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
-    const [selectedEntry, setSelectedEntry] = useState<WantListEntry | null>(null);
-    const [editData, setEditData] = useState<WantListEntry | null>(null);
+    const [selectedEntry, setSelectedEntry] = useState<WantList | null>(null);
+    const [editData, setEditData] = useState<WantList | null>(null);
     const [isAdding, setIsAdding] = useState(false);
     const [useNewCustomer, setUseNewCustomer] = useState(false);
-    const [newEntryData, setNewEntryData] = useState<WantListEntry>({
+    const [newEntryData, setNewEntryData] = useState<WantList>({
         id: 0,
         customer_id: 0,
         initial: '',
         notes: '',
-        plants: [{ name: '', size: '', quantity: 1 }],
-        created_at: new Date().toISOString(),
+        is_closed: false,
+        spoken_to: '',
+        created_at_text: '',
+        closed_by: '',
+        plants: []
     });
     const [newCustomerData, setNewCustomerData] = useState<Customer>({
         id: 0,
@@ -27,7 +28,6 @@ const WantListDashboard = () => {
         last_name: '',
         phone: '',
         email: '',
-        is_active: true,
         notes: ''
     });
     const [selectedEntries, setSelectedEntries] = useState<number[]>([]);
@@ -36,9 +36,10 @@ const WantListDashboard = () => {
     const fetchEntries = async () => {
         try {
             const entries = await fetchWantListEntries();
-            setWantListEntries(entries);
+            setWantListEntries(Array.isArray(entries) ? entries : []);
         } catch (error) {
             console.error('Error:', error);
+            setWantListEntries([]);
         }
     };
 
@@ -62,7 +63,7 @@ const WantListDashboard = () => {
         setIsAdding(false);
     };
 
-    const handleEditChange = (field: keyof WantListEntry, value: string | number | boolean) => {
+    const handleEditChange = (field: keyof WantList, value: string | number | boolean) => {
         setEditData((prev) => (prev ? { ...prev, [field]: value } : null));
     };
 
@@ -77,7 +78,7 @@ const WantListDashboard = () => {
         if (!editData) return;
         setEditData({
             ...editData,
-            plants: [...(editData.plants || []), { name: '', size: '', quantity: 1 }],
+            plants: [...(editData.plants || []), { id: Date.now(), name: '', size: '', quantity: 1, status: '', plant_catalog_id: 0, requested_at: '', fulfilled_at: '' }],
         });
     };
 
@@ -91,7 +92,8 @@ const WantListDashboard = () => {
                 body: JSON.stringify({ id: editData?.id, updatedFields: editData }),
             });
             if (res.ok) {
-                await fetchEntries();
+                console.log('Changes saved successfully!');
+                fetchEntries();
                 closeModal();
             } else {
                 console.error('Failed to save changes');
@@ -101,7 +103,7 @@ const WantListDashboard = () => {
         }
     };
 
-    const handleNewEntryChange = (field: keyof WantListEntry, value: string | number | boolean) => {
+    const handleNewEntryChange = (field: keyof WantList, value: string | number | boolean) => {
         setNewEntryData((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -114,7 +116,7 @@ const WantListDashboard = () => {
     const handleAddNewPlant = () => {
         setNewEntryData({
             ...newEntryData,
-            plants: [...newEntryData.plants, { name: '', size: '', quantity: 1 }],
+            plants: [...newEntryData.plants, { id: Date.now(), name: '', size: '', quantity: 1, status: '', plant_catalog_id: 0, requested_at: '', fulfilled_at: '' }],
         });
     };
 
@@ -153,9 +155,10 @@ const WantListDashboard = () => {
                 body: JSON.stringify({ initial, notes }),
             });
             if (res.ok) {
-                await fetchEntries();
+                console.log('Entry marked as closed successfully!');
+                fetchEntries();
             } else {
-                console.error('Failed to mark as closed');
+                console.error('Failed to mark entry as closed');
             }
         } catch (error) {
             console.error('Error marking as closed:', error);
@@ -206,36 +209,16 @@ const WantListDashboard = () => {
             )}
 
             {selectedEntry && (
-                <Modal onClose={closeModal}>
-                    <WantListCard
-                        entry={selectedEntry}
-                        onEdit={() => setEditData(selectedEntry)}
-                        onClose={() => handleMarkAsClosed(selectedEntry.id, selectedEntry.initial, selectedEntry.notes || '')}
-                    />
-                </Modal>
+                <div>
+                    {/* Render selected entry details */}
+                </div>
             )}
 
             {isAdding && (
-                <Modal onClose={closeModal}>
-                    <div>
-                        <h2>Add New Want List Entry</h2>
-                        <form onSubmit={saveNewEntry}>
-                            {/* Form fields for new entry */}
-                        </form>
-                    </div>
-                </Modal>
+                <div>
+                    {/* Render form for adding new entry */}
+                </div>
             )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {sortedEntries.map(entry => (
-                    <WantListCard
-                        key={entry.id}
-                        entry={entry}
-                        onSelect={() => toggleSelectEntry(entry.id)}
-                        onEdit={() => setSelectedEntry(entry)}
-                    />
-                ))}
-            </div>
         </main>
     );
 };

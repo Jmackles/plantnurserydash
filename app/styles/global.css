@@ -3,40 +3,71 @@
 @tailwind utilities;
 
 :root {
-  --background: #f7f7f7; /* Soft pastel background */
-  --foreground: #333333; /* Darker text for better contrast */
+  --white-hsl: 0, 0%, 100%;
+  --black-hsl: 0, 0%, 0%;
+  --accent-hsl: 120, 60%, 50%;
+  --lightAccent-hsl: 120, 60%, 90%;
+  --darkAccent-hsl: 120, 60%, 30%;
+  --safeInverseAccent-hsl: 0, 0%, 100%;
+  --safeInverseLightAccent-hsl: 0, 0%, 100%;
+  --safeInverseDarkAccent-hsl: 0, 0%, 100%;
+  --background: hsl(var(--white-hsl));
+  --foreground: hsl(var(--black-hsl));
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1a1a1a;
-    --foreground: #ededed;
+    --background: hsl(var(--black-hsl));
+    --foreground: hsl(var(--white-hsl));
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Adelle Sans', Arial, sans-serif;
+  font-weight: 300;
+  font-size: 1rem;
 }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 500;
+}
+
+h1 { font-size: 4rem; }
+h2 { font-size: 3.2rem; }
+h3 { font-size: 2.4rem; }
+h4 { font-size: 1.8rem; }
+h5 { font-size: 1.6rem; }
+h6 { font-size: 1.4rem; }
 
 @layer components {
   .input-field {
     @apply w-full p-2 mb-4 border-2 border-sage-300 rounded-lg 
            focus:outline-none focus:border-sage-500 
            bg-white/50 transition-colors;
+    border-radius: 5px;
+    border-width: 1px;
+    padding: 10px;
   }
 
   .btn-primary {
     @apply px-4 py-2 bg-sage-500 text-white rounded-lg
            hover:bg-sage-600 active:bg-sage-700
            transition-colors shadow-md;
+    border-radius: 6.4px;
+    padding: 1.1em 1.837em;
+    border: 2px solid transparent;
   }
 
   .btn-secondary {
     @apply px-4 py-2 bg-lavender-400 text-white rounded-lg
            hover:bg-lavender-500 active:bg-lavender-600
            transition-colors shadow-md;
+    border-radius: 6.4px;
+    padding: 1em 1.5em;
+    border: 2px solid transparent;
   }
 
   .card-section {
@@ -147,4 +178,17 @@ body {
   .modal-content {
     @apply max-w-[95%] w-full;
   }
+}
+
+/* Button styles */
+.btn-tertiary {
+  border-radius: 6.4px;
+  padding: 1em 1.5em;
+  border: 2px solid transparent;
+}
+
+/* Global animations */
+* {
+  transition: all 0.9s ease;
+  transition-delay: 0.6s;
 }

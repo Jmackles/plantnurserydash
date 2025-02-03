@@ -130,7 +130,7 @@
     ]
   },
   "All Perennials": {
-    "sql": "CREATE TABLE \"All Perennials\" (ID INTEGER NOT NULL, TagName TEXT , Botanical TEXT , Department TEXT , Classification TEXT , Winterizing TEXT , NoWarranty BOOLEAN NOT NULL, DeerResistance TEXT , CarNative BOOLEAN NOT NULL, MeltingSun BOOLEAN NOT NULL, FullSun BOOLEAN NOT NULL, PartSun BOOLEAN NOT NULL, Shade BOOLEAN NOT NULL, GrowthRate TEXT , MatureSize TEXT , ZoneMax TEXT , ZoneMin TEXT , Notes TEXT , Image BLOB )",
+    "sql": "CREATE TABLE \"All Perennials\" (ID INTEGER NOT NULL, tag_name TEXT , Botanical TEXT , Department TEXT , Classification TEXT , Winterizing TEXT , NoWarranty BOOLEAN NOT NULL, DeerResistance TEXT , CarNative BOOLEAN NOT NULL, MeltingSun BOOLEAN NOT NULL, FullSun BOOLEAN NOT NULL, PartSun BOOLEAN NOT NULL, Shade BOOLEAN NOT NULL, GrowthRate TEXT , MatureSize TEXT , ZoneMax TEXT , ZoneMin TEXT , Notes TEXT , Image BLOB )",
     "columns": [
       {
         "cid": 0,
@@ -142,7 +142,7 @@
       },
       {
         "cid": 1,
-        "name": "TagName",
+        "name": "tag_name",
         "type": "TEXT",
         "notnull": 0,
         "dflt_value": null,
@@ -287,11 +287,11 @@
     ]
   },
   "BenchTag Images": {
-    "sql": "CREATE TABLE \"BenchTag Images\" (TagName TEXT , Botanical TEXT , Image BLOB )",
+    "sql": "CREATE TABLE \"BenchTag Images\" (tag_name TEXT , Botanical TEXT , Image BLOB )",
     "columns": [
       {
         "cid": 0,
-        "name": "TagName",
+        "name": "tag_name",
         "type": "TEXT",
         "notnull": 0,
         "dflt_value": null,
@@ -316,7 +316,7 @@
     ]
   },
   "BenchTags": {
-    "sql": "CREATE TABLE \"BenchTags\" (ID INTEGER NOT NULL, TagName TEXT , Botanical TEXT , Department TEXT , Classification TEXT , NoWarranty BOOLEAN NOT NULL, DeerResistance TEXT , Nativity TEXT , CarNative BOOLEAN NOT NULL, MeltingSun BOOLEAN NOT NULL, FullSun BOOLEAN NOT NULL, PartSun BOOLEAN NOT NULL, Shade BOOLEAN NOT NULL, GrowthRate TEXT NOT NULL, AvgSize TEXT , MaxSize TEXT , MatureSize TEXT , ZoneMax TEXT , ZoneMin TEXT , Winterizing TEXT , Notes TEXT , ShowTopNotes BOOLEAN NOT NULL, TopNotes TEXT , Image BLOB , Price TEXT , Size TEXT , PotSize TEXT , PotSizeUnit TEXT , PotDepth TEXT , PotShape TEXT , PotType TEXT , PotCustomText TEXT , FlatPricing BOOLEAN NOT NULL, FlatCount INTEGER , FlatPrice TEXT , Print BOOLEAN NOT NULL)",
+    "sql": "CREATE TABLE \"BenchTags\" (ID INTEGER NOT NULL, tag_name TEXT , Botanical TEXT , Department TEXT , Classification TEXT , NoWarranty BOOLEAN NOT NULL, DeerResistance TEXT , Nativity TEXT , CarNative BOOLEAN NOT NULL, MeltingSun BOOLEAN NOT NULL, FullSun BOOLEAN NOT NULL, PartSun BOOLEAN NOT NULL, Shade BOOLEAN NOT NULL, GrowthRate TEXT NOT NULL, AvgSize TEXT , MaxSize TEXT , MatureSize TEXT , ZoneMax TEXT , ZoneMin TEXT , Winterizing TEXT , Notes TEXT , ShowTopNotes BOOLEAN NOT NULL, TopNotes TEXT , Image BLOB , Price TEXT , Size TEXT , PotSize TEXT , PotSizeUnit TEXT , PotDepth TEXT , PotShape TEXT , PotType TEXT , PotCustomText TEXT , FlatPricing BOOLEAN NOT NULL, FlatCount INTEGER , FlatPrice TEXT , Print BOOLEAN NOT NULL)",
     "columns": [
       {
         "cid": 0,
@@ -328,7 +328,7 @@
       },
       {
         "cid": 1,
-        "name": "TagName",
+        "name": "tag_name",
         "type": "TEXT",
         "notnull": 0,
         "dflt_value": null,

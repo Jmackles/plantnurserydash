@@ -2,55 +2,41 @@ import { NextRequest, NextResponse } from 'next/server';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
+import { WantList } from '../../lib/types';
 
-export async function GET() {
+let db: sqlite3.Database | null = null;
+
+async function getDbConnection() {
+    if (!db) {
+        db = new sqlite3.Database(path.join(process.cwd(), 'app/database/database.sqlite'));
+    }
+    return db;
+}
+
+export async function GET(req: NextRequest) {
     try {
-        const db = await open({
-            filename: path.join(process.cwd(), 'app/database/database.sqlite'), // Ensure this path is correct
-            driver: sqlite3.Database
-        });
+        const db = await getDbConnection();
 
-        const wantListEntries = await db.all(`
-            SELECT wl.*, p.id as plant_id, p.name as plant_name, p.size as plant_size, p.quantity as plant_quantity
-            FROM want_list wl
-            LEFT JOIN plants p ON wl.id = p.want_list_entry_id
+        const wantListEntries = await db.all<WantList[]>(`
+            SELECT 
+                id,
+                customer_id,
+                initial,
+                notes,
+                is_closed,
+                spoken_to,
+                created_at_text,
+                closed_by
+            FROM want_list
         `);
 
-        const entriesMap = new Map();
-        wantListEntries.forEach(entry => {
-            if (!entriesMap.has(entry.id)) {
-                entriesMap.set(entry.id, {
-                    id: entry.id,
-                    customer_id: entry.customer_id,
-                    initial: entry.initial,
-                    notes: entry.notes,
-                    created_at: entry.created_at,
-                    is_closed: entry.is_closed,
-                    closed_by: entry.closed_by,
-                    spoken_to: entry.spoken_to,
-                    plants: []
-                });
-            }
-            if (entry.plant_id) {
-                entriesMap.get(entry.id).plants.push({
-                    id: entry.plant_id,
-                    name: entry.plant_name,
-                    size: entry.plant_size,
-                    quantity: entry.plant_quantity
-                });
-            }
-        });
-
-        const entries = Array.from(entriesMap.values());
-
-        await db.close();
-        return NextResponse.json(entries);
-    } catch (error) {
-        console.error('Error fetching want list entries:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch want list entries' },
-            { status: 500 }
-        );
+        return NextResponse.json({ data: wantListEntries });
+    } catch (error: unknown) {
+        console.error('Database error:', error);
+        return NextResponse.json({
+            error: 'Failed to fetch want list entries',
+            details: error instanceof Error ? error.message : 'Unknown error',
+        }, { status: 500 });
     }
 }
 

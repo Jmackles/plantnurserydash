@@ -1,74 +1,81 @@
 // filepath: /c:/Users/Head-Lee2021/OneDrive/Documents/GitHub/plantnurserydash/app/api/knowledgebase/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { open } from 'sqlite';
+import { open, Database } from 'sqlite';
 import sqlite3 from 'sqlite3';
 import path from 'path';
 
-export async function GET(
-    request: NextRequest,
-    context: { params: { id: string } }
-) {
-    console.log('API Route Handler Started');
-    
-    try {
-        const db = await open({
+let db: Database | null = null;
+
+async function getDbConnection() {
+    if (!db) {
+        db = await open({
             filename: path.join(process.cwd(), 'app/database/database.sqlite'),
             driver: sqlite3.Database
         });
+    }
+    return db;
+}
 
+export async function GET(
+    req: NextRequest,
+    context: { params: { id: string } }
+) {
+    try {
         const { id } = context.params;
-        console.log('Querying database for ID:', id);
 
-        // First verify the plant exists
-        const plant = await db.get('SELECT * FROM BenchTags WHERE id = ?', id);
-        console.log('Database result:', plant);
+        const db = await getDbConnection();
 
+        // Ensure the PlantImages table exists
+        await db.run(`
+            CREATE TABLE IF NOT EXISTS PlantImages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                plantId INTEGER,
+                imagePath TEXT,
+                imageOrder INTEGER,
+                FOREIGN KEY (plantId) REFERENCES BenchTags(ID)
+            )
+        `);
+
+        const plant = await db.get('SELECT * FROM BenchTags WHERE ID = ?', [id]);
+        
         if (!plant) {
-            console.log('Plant not found');
-            return new NextResponse(
-                JSON.stringify({ error: 'Plant not found' }),
-                {
-                    status: 404,
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                }
+            return NextResponse.json(
+                { error: 'Plant not found' },
+                { status: 404 }
             );
         }
 
-        // Format the response
-        const response = {
-            ...plant,
-            ImageUrls: [], // Initialize empty array for now
-            ID: plant.id || id,
-            TagName: plant.TagName || 'Unknown Plant',
-        };
-
-        console.log('Sending response:', response);
-
-        return new NextResponse(
-            JSON.stringify(response),
-            {
-                status: 200,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }
+        // Get all images for this plant
+        const images = await db.all(
+            'SELECT imagePath, imageOrder FROM PlantImages WHERE plantId = ? ORDER BY imageOrder',
+            [id]
         );
 
-    } catch (error) {
-        console.error('API Error:', error);
-        return new NextResponse(
-            JSON.stringify({ 
-                error: 'Server error',
-                details: error.message 
-            }),
-            {
-                status: 500,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+        // Add images to plant object
+        plant.ImageUrls = images.map(img => img.imagePath);
+
+        if (plant.Image) {
+            try {
+                // Convert binary data to base64
+                const buffer = Buffer.from(plant.Image);
+                plant.ImageUrl = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+            } catch (error) {
+                console.error(`Error processing image for plant ${id}:`, error);
+                plant.ImageUrl = null;
             }
+        } else {
+            plant.ImageUrl = null;
+        }
+        
+        // Remove the raw image data from the response
+        delete plant.Image;
+
+        return NextResponse.json(plant);
+    } catch (error) {
+        console.error('Error:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch plant details' },
+            { status: 500 }
         );
     }
 }

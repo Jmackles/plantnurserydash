@@ -2,8 +2,6 @@
 import React from 'react';
 
 interface SearchFilterPanelProps {
-    searchQuery: string;
-    setSearchQuery: (query: string) => void;
     filter: string;
     setFilter: (filter: string) => void;
     isVisible: boolean;
@@ -12,8 +10,6 @@ interface SearchFilterPanelProps {
 
 const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({
     searchQuery,
-    setSearchQuery,
-    filter,
     setFilter,
     isVisible,
     toggleVisibility

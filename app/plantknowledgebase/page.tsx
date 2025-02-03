@@ -182,14 +182,35 @@ const PlantKnowledgeBase = () => {
     }, [plants, filters]);
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
+        <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
             <PlantSearchFilterPanel
                 filters={filters}
                 setFilters={setFilters}
                 isVisible={isFilterPanelVisible}
                 toggleVisibility={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
             />
-            <main className={`flex-1 p-8 transition-all duration-300 ${isFilterPanelVisible ? 'lg:ml-80' : 'ml-0'} w-full min-h-screen`}>
+            <main className={`
+                flex-1 p-4 lg:p-8 
+                transition-all duration-300 
+                min-h-screen
+                w-full
+                ${isFilterPanelVisible ? 'lg:ml-80' : ''}
+            `}>
+                {/* Show Filters button - always visible on mobile, only when panel is hidden on desktop */}
+                <div className={`
+                    sticky top-0 z-40 mb-4 
+                    ${isFilterPanelVisible ? 'lg:hidden' : ''}
+                `}>
+                    <button 
+                        onClick={() => setIsFilterPanelVisible(true)}
+                        className="bg-[hsl(var(--accent-hsl))] text-[hsl(var(--white-hsl))] 
+                                 rounded-lg px-4 py-2 shadow-md hover:bg-[hsl(var(--safeDarkAccent-hsl))] 
+                                 transition-colors"
+                    >
+                        <span className="sr-only">Show filters</span>
+                        ≡ Filters
+                    </button>
+                </div>
                 <div className="max-w-7xl mx-auto space-y-6">
                     <h1 className="text-4xl font-bold text-[hsl(var(--accent-hsl))] tracking-tight">
                         Plant Knowledge Base

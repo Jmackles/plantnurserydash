@@ -1,7 +1,7 @@
 import React from 'react';
 
 export interface FilterState {
-	// Define filter keys based on usage in page.tsx
+	// Updated filter keys including new ones
 	sunExposure: string[];
 	foliageType: string[];
 	lifespan: string[];
@@ -9,6 +9,8 @@ export interface FilterState {
 	departments: string[];
 	botanicalNames: string[];
 	searchQuery: string;
+	winterizing: string[];
+	carNative: string[];
 }
 
 interface PlantSearchFilterPanelProps {
@@ -30,16 +32,31 @@ const PlantSearchFilterPanel: React.FC<PlantSearchFilterPanelProps> = ({
 		setFilters({ ...filters, searchQuery: e.target.value });
 	};
 
-	// Example: Toggle a sample filter for sunExposure (this can be expanded)
-	const toggleSunExposure = (value: string) => {
-		const current = filters.sunExposure;
+	// Toggle mechanism for array-based filters 
+	const toggleFilter = (key: keyof FilterState, value: string) => {
+		const current = filters[key] as string[];
 		setFilters({
 			...filters,
-			sunExposure: current.includes(value)
-				? current.filter(v => v !== value)
-				: [...current, value]
+			[key]: current.includes(value) ? current.filter(v => v !== value) : [...current, value]
 		});
 	};
+
+	// Options for winterizing and updated sun exposure
+	const sunOptions = [
+		{ label: 'Melting Sun', value: 'MeltingSun' },
+		{ label: 'Full Sun', value: 'Full' },
+		{ label: 'Partial Sun', value: 'Partial' },
+		{ label: 'Shade', value: 'Shade' }
+	];
+	const winterizingOptions = [
+		'Evergreen', 'Deciduous', 'Semi-Evergreen', 'Perennial', 'Tender Perennial',
+		'Perennial Evergreen', 'Perennial Semi-Evergreen', 'Tropical', 'Annual',
+		'Variable', 'Perennial/Winter Annual', 'Winter Annual'
+	];
+	const carNativeOptions = [
+		'1', // Carolina Native
+		'0'  // Not Carolina Native
+	];
 
 	return (
 		<aside className="w-80 p-4 border-r border-gray-200 bg-white fixed h-full overflow-y-auto">
@@ -60,21 +77,59 @@ const PlantSearchFilterPanel: React.FC<PlantSearchFilterPanelProps> = ({
 					className="w-full p-2 border border-gray-300 rounded"
 				/>
 			</div>
-			{/* Sample Filter for Sun Exposure */}
+			{/* Sun Exposure Filter */}
 			<div className="mb-4">
 				<label className="block font-medium mb-1">Sun Exposure</label>
 				<div className="flex flex-wrap gap-2">
-					{['Full', 'Partial', 'Shade'].map(option => (
+					{sunOptions.map(option => (
 						<button
-							key={option}
-							onClick={() => toggleSunExposure(option)}
+							key={option.value}
+							onClick={() => toggleFilter('sunExposure', option.value)}
 							className={`px-3 py-1 border rounded ${
-								filters.sunExposure.includes(option)
+								filters.sunExposure.includes(option.value)
 									? 'bg-blue-600 text-white'
 									: 'bg-white text-gray-600'
 							}`}
 						>
+							{option.label}
+						</button>
+					))}
+				</div>
+			</div>
+			{/* Winterizing Filter */}
+			<div className="mb-4">
+				<label className="block font-medium mb-1">Winterizing Habit</label>
+				<div className="flex flex-wrap gap-2">
+					{winterizingOptions.map(option => (
+						<button
+							key={option}
+							onClick={() => toggleFilter('winterizing', option)}
+							className={`px-3 py-1 border rounded text-xs ${
+								filters.winterizing.includes(option)
+									? 'bg-green-600 text-white'
+									: 'bg-white text-gray-600'
+							}`}
+						>
 							{option}
+						</button>
+					))}
+				</div>
+			</div>
+			{/* CarNative Filter */}
+			<div className="mb-4">
+				<label className="block font-medium mb-1">Carolina Native</label>
+				<div className="flex flex-wrap gap-2">
+					{carNativeOptions.map(option => (
+						<button
+							key={option}
+							onClick={() => toggleFilter('carNative', option)}
+							className={`px-3 py-1 border rounded ${
+								filters.carNative.includes(option)
+									? 'bg-purple-600 text-white'
+									: 'bg-white text-gray-600'
+							}`}
+						>
+							{option === '1' ? 'Native' : 'Not Native'}
 						</button>
 					))}
 				</div>

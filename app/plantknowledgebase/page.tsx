@@ -19,7 +19,7 @@ const PlantKnowledgeBase = () => {
     const [plants, setPlants] = useState<BenchTags[]>([]);
     const [viewMode, setViewMode] = useState<'list' | 'card'>('card');
     const [currentPage, setCurrentPage] = useState(1);
-    const [sortField, setSortField] = useState<'TagName' | 'Botanical'>('TagName');
+    const [sortField, setSortField] = useState<'TagName' | 'Botanical' | 'DeerResistance' | 'Warranty' | 'Classification' | 'Department'>('TagName');
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState<FilterState>({
@@ -29,7 +29,9 @@ const PlantKnowledgeBase = () => {
         zones: [],
         departments: [],
         botanicalNames: [],
-        searchQuery: ''
+        searchQuery: '',
+        winterizing: [],
+        carNative: []
     });
     const { showToast } = useToast();
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -43,6 +45,10 @@ const PlantKnowledgeBase = () => {
     };
 
     const fallbackImageUrl = '/plantimage.jpg';
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters, sortField]);
 
     useEffect(() => {
         let mounted = true;
@@ -72,6 +78,10 @@ const PlantKnowledgeBase = () => {
                     params.append('foliageType[]', value));
                 filters.botanicalNames.forEach(value => 
                     params.append('botanicalNames[]', value));
+                filters.winterizing.forEach(value => 
+                    params.append('winterizing[]', value));
+                filters.carNative.forEach(value => 
+                    params.append('carNative[]', value));
 
                 const response = await fetch(`/api/knowledgebase?${params}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -124,15 +134,41 @@ const PlantKnowledgeBase = () => {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [currentPage, totalPages]);
 
-    const displayPlants = plants;
-
-    const LoadingSkeleton = () => (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-                <div key={i} className="loading-skeleton h-64 rounded-lg"></div>
-            ))}
-        </div>
-    );
+    const filteredPlants = useMemo(() => {
+        let list = plants;
+        // Filter by searchQuery (checks TagName and Botanical)
+        if (filters.searchQuery) {
+            const query = filters.searchQuery.toLowerCase();
+            list = list.filter(plant =>
+                (plant.TagName || '').toLowerCase().includes(query) ||
+                (plant.Botanical || '').toLowerCase().includes(query)
+            );
+        }
+        // Filter by sunExposure: safely check if plant property is truthy
+        if (filters.sunExposure.length > 0) {
+            list = list.filter(plant =>
+                filters.sunExposure.some(sunKey => Boolean((plant as any)[sunKey]))
+            );
+        }
+        // Filter by winterizing: safely access plant's Winterizing property
+        if (filters.winterizing.length > 0) {
+            list = list.filter(plant =>
+                filters.winterizing.includes(String((plant as any).Winterizing || ''))
+            );
+        }
+                filters.winterizing.includes(plant.Winterizing || '')
+            );
+        }
+        // Filter by Carolina native: '1' means native, '0' means not native.
+        if (filters.carNative.length > 0) {
+            list = list.filter(plant => {
+                const isNative = !!plant.CarNative;
+                return (isNative && filters.carNative.includes('1')) ||
+                       (!isNative && filters.carNative.includes('0'));
+            });
+        }
+        return list;
+    }, [plants, filters]);
 
     return (
         <div className="flex min-h-screen bg-gray-50">
@@ -163,6 +199,10 @@ const PlantKnowledgeBase = () => {
                                 >
                                     <option value="TagName">Tag Name</option>
                                     <option value="Botanical">Botanical Name</option>
+                                    <option value="DeerResistance">Deer Resistance</option>
+                                    <option value="Warranty">Warranty</option>
+                                    <option value="Classification">Classification</option>
+                                    <option value="Department">Department</option>
                                 </select>
                             </div>
                             <div className="flex items-center space-x-2">
@@ -193,7 +233,7 @@ const PlantKnowledgeBase = () => {
                                   transition-shadow duration-200 hover:shadow-md">
                         {loading ? (
                             <LoadingSkeleton />
-                        ) : displayPlants.length === 0 ? (
+                        ) : filteredPlants.length === 0 ? (
                             <div className="text-center py-8 text-gray-500">
                                 <p className="text-xl">No plants found</p>
                                 <button 
@@ -205,7 +245,7 @@ const PlantKnowledgeBase = () => {
                             </div>
                         ) : viewMode === 'card' ? (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                {displayPlants.map((plant) => (
+                                {filteredPlants.map((plant) => (
                                     <PlantCard key={plant.ID} plant={plant} />
                                 ))}
                             </div>
@@ -231,7 +271,7 @@ const PlantKnowledgeBase = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {displayPlants.map((plant) => (
+                                        {filteredPlants.map((plant) => (
                                             <tr key={plant.ID} className="cursor-pointer hover:bg-gray-50" 
                                                 onClick={() => window.location.href = `/plantknowledgebase/${plant.ID}`}>
                                                 <td className="py-2 px-4 border-b">

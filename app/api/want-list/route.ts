@@ -1,192 +1,129 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { open } from 'sqlite';
-import sqlite3 from 'sqlite3';
-import path from 'path';
-import { WantList } from '../../lib/types';
+import { NextResponse } from 'next/server'
+import sqlite3 from 'sqlite3'
+import { open } from 'sqlite'
 
-async function getDbConnection() {
-    try {
-        return await open({
-            filename: path.join(process.cwd(), 'app/database/database.sqlite'),
-            driver: sqlite3.Database
-        });
-    } catch (error) {
-        console.error('Database connection error:', error);
-        throw error;
-    }
+const openDb = async () => {
+  return open({
+    filename: './app/database/database.sqlite',
+    driver: sqlite3.Database
+  })
 }
 
-export async function GET(req: NextRequest) {
-    let db = null;
-    try {
-        db = await getDbConnection();
-        console.log('Database connected successfully');
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const customerId = searchParams.get('customerId')
+  const db = await openDb()
+  try {
+    // First get want list entries
+    const wantListQuery = customerId 
+      ? 'SELECT * FROM want_list WHERE customer_id = ?'
+      : 'SELECT * FROM want_list';
+    const params = customerId ? [customerId] : [];
+    const wantListEntries = await db.all(wantListQuery, params);
 
-        // First get the want list entries
-        const wantListEntries = await db.all(`
-            SELECT 
-                w.id,
-                w.customer_id,
-                w.initial,
-                w.notes,
-                w.is_closed,
-                w.spoken_to,
-                w.created_at_text,
-                w.closed_by,
-                c.first_name,
-                c.last_name
-            FROM want_list w
-            LEFT JOIN customers c ON w.customer_id = c.id
-            ORDER BY w.created_at_text DESC
-        `);
+    // Then get associated plants for each entry
+    const enrichedEntries = await Promise.all(
+      wantListEntries.map(async (entry) => {
+        const plants = await db.all(`
+          SELECT p.*, pc.tag_name, pc.botanical
+          FROM plants p
+          LEFT JOIN PlantCatalog pc ON p.plant_catalog_id = pc.id
+          WHERE p.want_list_entry_id = ?
+        `, [entry.id]);
+        
+        return {
+          ...entry,
+          plants: plants
+        };
+      })
+    );
 
-        console.log('Found want list entries:', wantListEntries.length);
-
-        // For each want list entry, get its plants
-        const entriesWithPlants = await Promise.all(wantListEntries.map(async (entry) => {
-            try {
-                // Get legacy plants
-                const oldPlants = await db.all(`
-                    SELECT 
-                        id,
-                        want_list_entry_id,
-                        name,
-                        size,
-                        quantity,
-                        'legacy' as status,
-                        NULL as plant_catalog_id,
-                        NULL as requested_at,
-                        NULL as fulfilled_at
-                    FROM plants_old
-                    WHERE want_list_entry_id = ?
-                `, [entry.id]);
-
-                // Get new plants
-                const newPlants = await db.all(`
-                    SELECT 
-                        id,
-                        want_list_entry_id,
-                        name,
-                        size,
-                        quantity,
-                        status,
-                        plant_catalog_id,
-                        requested_at,
-                        fulfilled_at
-                    FROM plants
-                    WHERE want_list_entry_id = ?
-                `, [entry.id]);
-
-                return {
-                    ...entry,
-                    plants: [...oldPlants, ...newPlants]
-                };
-            } catch (error) {
-                console.error(`Error fetching plants for entry ${entry.id}:`, error);
-                return {
-                    ...entry,
-                    plants: []
-                };
-            }
-        }));
-
-        console.log('Successfully processed all entries');
-
-        return NextResponse.json({
-            success: true,
-            data: entriesWithPlants
-        });
-
-    } catch (error) {
-        console.error('Database error:', error);
-        return NextResponse.json({
-            success: false,
-            error: 'Failed to fetch want list entries',
-            details: error instanceof Error ? error.message : 'Unknown error',
-            data: []
-        }, { status: 500 });
-    } finally {
-        if (db) {
-            try {
-                await db.close();
-                console.log('Database connection closed');
-            } catch (error) {
-                console.error('Error closing database:', error);
-            }
-        }
-    }
+    return NextResponse.json(enrichedEntries);
+  } catch (error) {
+    console.error('Error fetching want list entries:', error);
+    return NextResponse.json({ error: 'Failed to fetch want list entries' }, { status: 500 });
+  }
 }
 
-export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { customer_id, initial, notes, plants, created_at } = body;
+export async function POST(request: Request) {
+  const db = await openDb()
+  const body = await request.json()
+  const { customer_id, initial, notes, is_closed, spoken_to, created_at_text, closed_by, plants } = body
+  
+  try {
+    // Begin transaction
+    await db.run('BEGIN TRANSACTION');
 
-        const db = await open({
-            filename: path.join(process.cwd(), 'app/database/database.sqlite'), // Ensure this path is correct
-            driver: sqlite3.Database
-        });
+    // 1. Create want list entry
+    const wantListResult = await db.run(
+      'INSERT INTO want_list (customer_id, initial, notes, is_closed, spoken_to, created_at_text, closed_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [customer_id, initial, notes, is_closed || false, spoken_to, created_at_text, closed_by]
+    );
+    
+    const wantListId = wantListResult.lastID;
 
-        const result = await db.run(
-            'INSERT INTO want_list (customer_id, initial, notes, created_at) VALUES (?, ?, ?, ?)',
-            [customer_id, initial, notes, created_at]
-        );
-
-        const entryId = result.lastID;
-
-        for (const plant of plants) {
-            await db.run(
-                'INSERT INTO plants (want_list_entry_id, name, size, quantity) VALUES (?, ?, ?, ?)',
-                [entryId, plant.name, plant.size, plant.quantity]
-            );
-        }
-
-        await db.close();
-        return NextResponse.json({ id: entryId }, { status: 201 });
-    } catch (error) {
-        console.error('Error adding want list entry:', error);
-        return NextResponse.json(
-            { error: 'Failed to add want list entry' },
-            { status: 500 }
-        );
-    }
-}
-
-export async function PUT(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { id, updatedFields } = body;
-
-        const db = await open({
-            filename: path.join(process.cwd(), 'app/database/database.sqlite'), // Ensure this path is correct
-            driver: sqlite3.Database
-        });
-
-        const { initial, notes, spoken_to, is_closed, plants } = updatedFields;
-
+    // 2. Add plants with the want_list_entry_id
+    if (plants && plants.length > 0) {
+      for (const plant of plants) {
         await db.run(
-            'UPDATE want_list SET initial = ?, notes = ?, spoken_to = ?, is_closed = ? WHERE id = ?',
-            [initial, notes, spoken_to, is_closed, id]
+          'INSERT INTO plants (want_list_entry_id, name, size, quantity, status, plant_catalog_id, requested_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+          [wantListId, plant.name, plant.size, plant.quantity, 'pending', plant.plant_catalog_id || null]
         );
-
-        await db.run('DELETE FROM plants WHERE want_list_entry_id = ?', [id]);
-
-        if (plants && plants.length > 0) {
-            for (const plant of plants) {
-                await db.run(
-                    'INSERT INTO plants (want_list_entry_id, name, size, quantity) VALUES (?, ?, ?, ?)',
-                    [id, plant.name, plant.size, plant.quantity]
-                );
-            }
-        }
-
-        await db.close();
-        return NextResponse.json({ message: 'Entry updated successfully' });
-    } catch (error) {
-        console.error('Error updating want list entry:', error);
-        return NextResponse.json(
-            { error: 'Failed to update want list entry' },
-            { status: 500 }
-        );
+      }
     }
+
+    // 3. Fetch the complete want list entry with its plants
+    const newEntry = await db.get('SELECT * FROM want_list WHERE id = ?', [wantListId]);
+    const entryPlants = await db.all('SELECT * FROM plants WHERE want_list_entry_id = ?', [wantListId]);
+    
+    // Commit transaction
+    await db.run('COMMIT');
+
+    // Return the complete entry with its plants
+    return NextResponse.json({
+      ...newEntry,
+      plants: entryPlants
+    }, { status: 201 });
+
+  } catch (error: any) {
+    // Rollback transaction on error
+    await db.run('ROLLBACK');
+    
+    console.error('Error in want list creation:', error);
+    if (error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+      return NextResponse.json({ error: 'Foreign key constraint failed' }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to add want list entry' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  const db = await openDb()
+  const body = await request.json()
+  const { id, customer_id, initial, notes, is_closed, spoken_to, created_at_text, closed_by } = body
+  try {
+    await db.run(
+      'UPDATE want_list SET customer_id = ?, initial = ?, notes = ?, is_closed = ?, spoken_to = ?, created_at_text = ?, closed_by = ? WHERE id = ?',
+      [customer_id, initial, notes, is_closed, spoken_to, created_at_text, closed_by, id]
+    )
+    const updatedEntry = await db.get('SELECT * FROM want_list WHERE id = ?', [id])
+    return NextResponse.json(updatedEntry)
+  } catch (error: any) {
+    if (error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
+      return NextResponse.json({ error: 'Foreign key constraint failed' }, { status: 400 })
+    }
+    return NextResponse.json({ error: 'Failed to update want list entry' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  const db = await openDb()
+  const body = await request.json()
+  const { id } = body
+  try {
+    await db.run('DELETE FROM want_list WHERE id = ?', [id])
+    return NextResponse.json({ message: 'Want list entry deleted successfully' })
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to delete want list entry' }, { status: 500 })
+  }
 }

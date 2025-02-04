@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { WantList, Customer, Plant } from './../lib/types';
-import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } from './../lib/api';
-import WantListCard from './../components/cards/WantListCard'; // Add this import
+import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } from '../../lib/api';
+import WantListCard from './../components/cards/WantListCard';
+import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
 
 const WantListDashboard = () => {
     const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
@@ -29,6 +30,7 @@ const WantListDashboard = () => {
         last_name: '',
         phone: '',
         email: '',
+        is_active: true,
         notes: ''
     });
     const [selectedEntries, setSelectedEntries] = useState<number[]>([]);
@@ -88,7 +90,7 @@ const WantListDashboard = () => {
         if (!editData) return;
         setEditData({
             ...editData,
-            plants: [...(editData.plants || []), { id: Date.now(), name: '', size: '', quantity: 1, status: '', plant_catalog_id: 0, requested_at: '', fulfilled_at: '' }],
+            plants: [...(editData.plants || []), { id: Date.now(), name: '', size: '', quantity: 1, status: 'pending', plant_catalog_id: 0, requested_at: '', fulfilled_at: '' }],
         });
     };
 
@@ -126,7 +128,7 @@ const WantListDashboard = () => {
     const handleAddNewPlant = () => {
         setNewEntryData({
             ...newEntryData,
-            plants: [...newEntryData.plants, { id: Date.now(), name: '', size: '', quantity: 1, status: '', plant_catalog_id: 0, requested_at: '', fulfilled_at: '' }],
+            plants: [...newEntryData.plants, { id: Date.now(), name: '', size: '', quantity: 1, status: 'pending', plant_catalog_id: 0, requested_at: '', fulfilled_at: '' }],
         });
     };
 
@@ -144,7 +146,7 @@ const WantListDashboard = () => {
             await addWantListEntry({
                 ...newEntryData,
                 customer_id: customerId,
-                created_at: new Date().toISOString(),
+                created_at_text: new Date().toISOString(),
             });
             console.log('New want list entry added successfully!');
             await fetchEntries();
@@ -209,6 +211,15 @@ const WantListDashboard = () => {
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-bold">Want List</h1>
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="btn-primary"
+                >
+                    Add New Want List Entry
+                </button>
+            </div>
             {selectedEntries.length > 0 && (
                 <BulkActionsBar
                     onClose={() => setSelectedEntries([])}
@@ -225,9 +236,11 @@ const WantListDashboard = () => {
             )}
 
             {isAdding && (
-                <div>
-                    {/* Render form for adding new entry */}
-                </div>
+                <CustomerInteractionModal
+                    customer={null}
+                    onClose={() => setIsAdding(false)}
+                    onSave={saveNewEntry}
+                />
             )}
 
             <div>

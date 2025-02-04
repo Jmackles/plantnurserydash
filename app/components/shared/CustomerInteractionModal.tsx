@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Customer, WantListEntry, Plant } from '../../lib/types';
-import { fetchWantListEntries } from '../../lib/api';
+import { Customer, WantList, Plant } from '../../lib/types';
 
 interface CustomerInteractionModalProps {
     customer: Customer | null;
@@ -9,7 +8,7 @@ interface CustomerInteractionModalProps {
 }
 
 const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ customer, onClose, onSave }) => {
-    const [wantListEntries, setWantListEntries] = useState<WantListEntry[]>([]);
+    const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
     const [editedCustomer, setEditedCustomer] = useState<Customer | null>(customer);
     const [includeWantList, setIncludeWantList] = useState(false);
     const [wantListData, setWantListData] = useState({
@@ -23,8 +22,11 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
     useEffect(() => {
         console.log('CustomerInteractionModal mounted with customer:', customer);
         if (customer) {
-            fetchWantListEntries()
-                .then(entries => setWantListEntries(entries.filter(entry => entry.customer_id === customer.id)))
+            fetch('/api/want-list')
+                .then(res => res.json())
+                .then((entries: WantList[]) => {
+                    setWantListEntries(entries.filter(entry => entry.customer_id === customer.id));
+                })
                 .catch(error => console.error('Error fetching want list entries:', error));
         }
     }, [customer]);
@@ -59,7 +61,7 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
     const handleAddPlant = () => {
         setWantListData(prev => ({
             ...prev,
-            plants: [...prev.plants, { name: '', size: '', quantity: 1 }]
+            plants: [...prev.plants, { id: Date.now(), want_list_entry_id: 0, name: '', size: '', quantity: 1, status: 'pending', plant_catalog_id: 0, requested_at: '', fulfilled_at: '' }]
         }));
     };
 
@@ -86,12 +88,21 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
             return;
         }
         try {
-            const res = await fetch(`/api/want-list/${id}/close`, {
+            const res = await fetch('/api/want-list', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ initial: closeInitial, notes: closeNotes }),
+                body: JSON.stringify({
+                    id,
+                    customer_id: customer ? customer.id : 0,
+                    initial: closeInitial,
+                    notes: closeNotes,
+                    is_closed: true,
+                    spoken_to: '',
+                    created_at_text: '',
+                    closed_by: closeInitial
+                }),
             });
             if (res.ok) {
                 setWantListEntries(prevEntries =>

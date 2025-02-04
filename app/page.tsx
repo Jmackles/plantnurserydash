@@ -17,10 +17,10 @@ export default function Dashboard() {
             const calculatedMetrics: DashboardMetrics = {
                 totalCustomers: customers.length,
                 activeWantlists: wantListEntries.filter(w => !w.is_closed).length,
-                totalPlants: wantListEntries.reduce((acc, w) => acc + w.plants.length, 0),
+                totalPlants: wantListEntries.reduce((acc, w) => acc + (w.plants ? w.plants.length : 0), 0),
                 pendingOrders: orders.filter(o => !o.completed).length,
                 averagePlantsPerWantList: wantListEntries.length ? 
-                    Math.round(wantListEntries.reduce((acc, w) => acc + w.plants.length, 0) / wantListEntries.length) : 0,
+                    Math.round(wantListEntries.reduce((acc, w) => acc + (w.plants ? w.plants.length : 0), 0) / wantListEntries.length) : 0,
                 totalOrders: orders.length,
                 completedOrders: orders.filter(o => o.completed).length
             };

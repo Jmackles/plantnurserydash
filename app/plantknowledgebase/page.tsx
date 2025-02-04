@@ -4,6 +4,7 @@ import { PlantCatalog, FilterState } from './../lib/types';
 import { useToast } from './../hooks/useToast';
 import PlantSearchFilterPanel from './../components/shared/PlantSearchFilterPanel';
 import PlantCard from './../components/cards/PlantCard';
+import { ErrorBoundary } from './../components/shared/ErrorBoundary';
 
 const PlantKnowledgeBase = () => {
     const [plants, setPlants] = useState<PlantCatalog[]>([]);
@@ -73,15 +74,15 @@ const PlantKnowledgeBase = () => {
                 filters.carNative.forEach(value => 
                     params.append('carNative[]', value));
 
-                const response = await fetch(`/api/knowledgebase?${params}`);
+                const response = await fetch(`/api/plants?${params}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
-                const result: KnowledgeBaseResponse = await response.json();
+                const result: PlantCatalog[] = await response.json();
                 
                 if (mounted) {
-                    if (Array.isArray(result.data)) {
-                        setPlants(result.data);
-                        setTotalPages(result.pagination.totalPages);
+                    if (Array.isArray(result)) {
+                        setPlants(result);
+                        setTotalPages(Math.ceil(result.length / itemsPerPage));
                     } else {
                         setPlants([]);
                     }
@@ -163,61 +164,63 @@ const PlantKnowledgeBase = () => {
     }, [plants, filters]);
 
     return (
-        <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
-            <PlantSearchFilterPanel
-                filters={filters}
-                setFilters={setFilters}
-                isVisible={isFilterPanelVisible}
-                toggleVisibility={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
-            />
-            <main className={`
-                flex-1 p-4 lg:p-8 
-                transition-all duration-300 
-                min-h-screen
-                w-full
-                ${isFilterPanelVisible ? 'lg:ml-80' : ''}
-            `}>
-                <div className={`
-                    sticky top-0 z-40 mb-4 
-                    ${isFilterPanelVisible ? 'lg:hidden' : ''}
+        <ErrorBoundary>
+            <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
+                <PlantSearchFilterPanel
+                    filters={filters}
+                    setFilters={setFilters}
+                    isVisible={isFilterPanelVisible}
+                    toggleVisibility={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
+                />
+                <main className={`
+                    flex-1 p-4 lg:p-8 
+                    transition-all duration-300 
+                    min-h-screen
+                    w-full
+                    ${isFilterPanelVisible ? 'lg:ml-80' : ''}
                 `}>
-                    <button
-                        onClick={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
-                        className="btn-primary"
-                    >
-                        Toggle Filters
-                    </button>
-                </div>
-                <div className="max-w-7xl mx-auto space-y-6">
-                    {loading ? (
-                        <div>Loading...</div>
-                    ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredPlants.map(plant => (
-                                <PlantCard key={plant.id} plant={plant} />
-                            ))}
-                        </div>
-                    )}
-                    <div className="flex justify-between items-center mt-6">
+                    <div className={`
+                        sticky top-0 z-40 mb-4 
+                        ${isFilterPanelVisible ? 'lg:hidden' : ''}
+                    `}>
                         <button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            className="btn-secondary"
+                            onClick={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
+                            className="btn-primary"
                         >
-                            Previous
-                        </button>
-                        <span>Page {currentPage} of {totalPages}</span>
-                        <button
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                            className="btn-secondary"
-                        >
-                            Next
+                            Toggle Filters
                         </button>
                     </div>
-                </div>
-            </main>
-        </div>
+                    <div className="max-w-7xl mx-auto space-y-6">
+                        {loading ? (
+                            <div>Loading...</div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredPlants.map(plant => (
+                                    <PlantCard key={plant.id} plant={plant} />
+                                ))}
+                            </div>
+                        )}
+                        <div className="flex justify-between items-center mt-6">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="btn-secondary"
+                            >
+                                Previous
+                            </button>
+                            <span>Page {currentPage} of {totalPages}</span>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="btn-secondary"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </ErrorBoundary>
     );
 };
 

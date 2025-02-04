@@ -3,8 +3,48 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import CustomerSearchFilterPanel from '../components/shared/CustomerSearchFilterPanel';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
-import { fetchCustomers, addCustomer, updateCustomer } from '../lib/api';
 import { Customer, Plant } from '../lib/types';
+
+const fetchCustomers = async () => {
+    const response = await fetch('/api/customers');
+    console.log('Fetching customers from:', response.url);
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error fetching customers:', response.status, errorText);
+        throw new Error(errorText || 'Failed to fetch customers');
+    }
+    return response.json();
+};
+
+const addCustomer = async (customer: Omit<Customer, 'id'>) => {
+    const response = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customer)
+    });
+    console.log('Adding customer to:', response.url);
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error adding customer:', response.status, errorText);
+        throw new Error(errorText || 'Failed to add customer');
+    }
+    return response.json();
+};
+
+const updateCustomer = async (customer: Customer) => {
+    const response = await fetch('/api/customers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customer)
+    });
+    console.log('Updating customer at:', response.url);
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error updating customer:', response.status, errorText);
+        throw new Error(errorText || 'Failed to update customer');
+    }
+    return response.json();
+};
 
 const Dashboard = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -102,6 +142,15 @@ const Dashboard = () => {
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-2xl font-bold">Customers</h1>
+                <button
+                    onClick={() => setIsAdding(true)}
+                    className="btn-primary"
+                >
+                    Add New Customer
+                </button>
+            </div>
             <div className="flex">
                 <CustomerSearchFilterPanel
                     searchQuery={searchQuery}

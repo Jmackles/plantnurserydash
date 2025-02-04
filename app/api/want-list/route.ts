@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const db = await openDb()
   const body = await request.json()
-  const { customer_id, initial, notes, is_closed, spoken_to, created_at_text, closed_by, plants } = body
+  const { customer_id, initial, notes, status, spoken_to, created_at_text, closed_by, plants } = body
   
   try {
     // Begin transaction
@@ -56,8 +56,8 @@ export async function POST(request: Request) {
 
     // 1. Create want list entry
     const wantListResult = await db.run(
-      'INSERT INTO want_list (customer_id, initial, notes, is_closed, spoken_to, created_at_text, closed_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [customer_id, initial, notes, is_closed || false, spoken_to, created_at_text, closed_by]
+      'INSERT INTO want_list (customer_id, initial, notes, status, spoken_to, created_at_text, closed_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [customer_id, initial, notes, status || 'pending', spoken_to, created_at_text, closed_by]
     );
     
     const wantListId = wantListResult.lastID;
@@ -100,19 +100,100 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   const db = await openDb()
   const body = await request.json()
-  const { id, customer_id, initial, notes, is_closed, spoken_to, created_at_text, closed_by } = body
+  if (!body) {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
+  
   try {
-    await db.run(
-      'UPDATE want_list SET customer_id = ?, initial = ?, notes = ?, is_closed = ?, spoken_to = ?, created_at_text = ?, closed_by = ? WHERE id = ?',
-      [customer_id, initial, notes, is_closed, spoken_to, created_at_text, closed_by, id]
-    )
-    const updatedEntry = await db.get('SELECT * FROM want_list WHERE id = ?', [id])
-    return NextResponse.json(updatedEntry)
-  } catch (error: any) {
-    if (error.code === 'SQLITE_CONSTRAINT_FOREIGNKEY') {
-      return NextResponse.json({ error: 'Foreign key constraint failed' }, { status: 400 })
+    console.log('Starting update with body:', body);
+    await db.run('BEGIN TRANSACTION');
+
+    // Update want list entry with new status field
+    const { id, customer_id, initial, notes, status, spoken_to, created_at_text, closed_by, plants } = body;
+    
+    const updateResult = await db.run(
+      `UPDATE want_list 
+       SET customer_id = ?, 
+           initial = ?, 
+           notes = ?, 
+           status = ?, 
+           spoken_to = ?, 
+           created_at_text = ?, 
+           closed_by = ? 
+       WHERE id = ?`,
+      [
+        customer_id,
+        initial,
+        notes,
+        status || 'pending',
+        spoken_to,
+        created_at_text,
+        closed_by,
+        id
+      ]
+    );
+
+    console.log('Update result:', updateResult);
+
+    // Handle plants updates
+    if (plants && plants.length > 0) {
+      for (const plant of plants) {
+        if (plant.id) {
+          await db.run(
+            `UPDATE plants 
+             SET name = ?, 
+                 size = ?, 
+                 quantity = ?, 
+                 status = ?, 
+                 plant_catalog_id = ? 
+             WHERE id = ? AND want_list_entry_id = ?`,
+            [
+              plant.name,
+              plant.size,
+              plant.quantity,
+              plant.status || 'pending',
+              plant.plant_catalog_id,
+              plant.id,
+              id
+            ]
+          );
+        } else {
+          await db.run(
+            `INSERT INTO plants (
+               want_list_entry_id, 
+               name, 
+               size, 
+               quantity, 
+               status, 
+               plant_catalog_id, 
+               requested_at
+             ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+            [
+              id,
+              plant.name,
+              plant.size,
+              plant.quantity,
+              'pending',
+              plant.plant_catalog_id || null
+            ]
+          );
+        }
+      }
     }
-    return NextResponse.json({ error: 'Failed to update want list entry' }, { status: 500 })
+
+    await db.run('COMMIT');
+
+    const updatedEntry = await db.get('SELECT * FROM want_list WHERE id = ?', [id]);
+    const updatedPlants = await db.all('SELECT * FROM plants WHERE want_list_entry_id = ?', [id]);
+
+    return NextResponse.json({ ...updatedEntry, plants: updatedPlants });
+  } catch (error: any) {
+    await db.run('ROLLBACK');
+    console.error('Update error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to update want list entry', 
+      details: error.message 
+    }, { status: 500 });
   }
 }
 

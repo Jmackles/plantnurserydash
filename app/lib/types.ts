@@ -69,7 +69,7 @@ export interface WantList {
     customer_id: number;
     initial: string;
     notes: string;
-    is_closed: boolean;
+    status: string;
     spoken_to: string;
     created_at_text: string;
     closed_by: string;

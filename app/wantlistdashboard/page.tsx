@@ -18,7 +18,7 @@ const WantListDashboard = () => {
         customer_id: 0,
         initial: '',
         notes: '',
-        is_closed: false,
+        status: 'pending',
         spoken_to: '',
         created_at_text: '',
         closed_by: '',
@@ -35,6 +35,10 @@ const WantListDashboard = () => {
     });
     const [selectedEntries, setSelectedEntries] = useState<number[]>([]);
     const [bulkCloseData, setBulkCloseData] = useState({ initial: '', notes: '' });
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const fetchEntries = async () => {
         try {
@@ -69,6 +73,12 @@ const WantListDashboard = () => {
         console.log('Want list entries:', wantListEntries);
     }, [wantListEntries]);
 
+    useEffect(() => {
+        if (selectedEntry) {
+            setEditData(selectedEntry);
+        }
+    }, [selectedEntry]);
+
     const closeModal = () => {
         setSelectedEntry(null);
         setEditData(null);
@@ -95,23 +105,36 @@ const WantListDashboard = () => {
     };
 
     const saveChanges = async () => {
+        if (!selectedEntry || !editData) {
+            console.error('No edit data available', { selectedEntry, editData });
+            return;
+        }
+        
         try {
-            const res = await fetch(`/api/want-list`, {
+            console.log('Attempting to save changes for entry:', editData.id);
+            console.log('Edit data:', editData);
+            
+            const res = await fetch(`/api/want-list/${selectedEntry.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ id: editData?.id, updatedFields: editData }),
+                body: JSON.stringify(editData),
             });
-            if (res.ok) {
-                console.log('Changes saved successfully!');
-                fetchEntries();
-                closeModal();
-            } else {
-                console.error('Failed to save changes');
+
+            console.log('Response status:', res.status);
+            const data = await res.json();
+            console.log('Response data:', data);
+            
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to save changes');
             }
+
+            await fetchEntries(); // Refresh the list
+            closeModal();
         } catch (error) {
             console.error('Error saving changes:', error);
+            alert('Failed to save changes: ' + (error.message || 'Unknown error'));
         }
     };
 
@@ -193,7 +216,7 @@ const WantListDashboard = () => {
             );
             setWantListEntries(prevEntries =>
                 prevEntries.map(entry =>
-                    selectedEntries.includes(entry.id) ? { ...entry, is_closed: true, closed_by: bulkCloseData.initial } : entry
+                    selectedEntries.includes(entry.id) ? { ...entry, status: 'completed', closed_by: bulkCloseData.initial } : entry
                 )
             );
         } catch (error) {
@@ -207,12 +230,25 @@ const WantListDashboard = () => {
         );
     };
 
-    const sortedEntries = [...wantListEntries].sort((a, b) => a.is_closed === b.is_closed ? 0 : a.is_closed ? 1 : -1);
+    const filteredEntries = wantListEntries.filter(entry => {
+        const matchesSearchQuery = entry.initial.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            entry.notes.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            customers.find(c => c.id === entry.customer_id)?.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            customers.find(c => c.id === entry.customer_id)?.last_name.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesFilterStatus = filterStatus === '' || entry.status === filterStatus;
+
+        return matchesSearchQuery && matchesFilterStatus;
+    });
+
+    const paginatedEntries = filteredEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
 
     return (
         <main className="p-6 max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">Want List</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-sage-800">Want List Dashboard</h1>
                 <button
                     onClick={() => setIsAdding(true)}
                     className="btn-primary"
@@ -220,19 +256,81 @@ const WantListDashboard = () => {
                     Add New Want List Entry
                 </button>
             </div>
-            {selectedEntries.length > 0 && (
-                <BulkActionsBar
-                    onClose={() => setSelectedEntries([])}
-                    onBulkClose={handleBulkClose}
-                    bulkCloseData={bulkCloseData}
-                    setBulkCloseData={setBulkCloseData}
+
+            <div className="flex justify-between items-center mb-6">
+                <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="input-field"
                 />
+                <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="input-field"
+                >
+                    <option value="">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                    <option value="canceled">Canceled</option>
+                </select>
+            </div>
+
+            {selectedEntries.length > 0 && (
+                <div className="mb-6 p-4 bg-sage-50 rounded-lg border border-sage-200">
+                    <BulkActionsBar
+                        onClose={() => setSelectedEntries([])}
+                        onBulkClose={handleBulkClose}
+                        bulkCloseData={bulkCloseData}
+                        setBulkCloseData={setBulkCloseData}
+                    />
+                </div>
             )}
 
+            <div className="grid gap-6">
+                {paginatedEntries.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-lg shadow">
+                        <p className="text-sage-600">No want list entries found.</p>
+                    </div>
+                ) : (
+                    paginatedEntries.map(entry => (
+                        <WantListCard 
+                            key={entry.id} 
+                            entry={entry} 
+                            onClick={() => setSelectedEntry(entry)}
+                        />
+                    ))
+                )}
+            </div>
+
+            <div className="flex justify-between items-center mt-6">
+                <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="btn-secondary"
+                >
+                    Previous
+                </button>
+                <span>Page {currentPage} of {totalPages}</span>
+                <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="btn-secondary"
+                >
+                    Next
+                </button>
+            </div>
+
             {selectedEntry && (
-                <div>
-                    {/* Render selected entry details */}
-                </div>
+                <CustomerInteractionModal
+                    customer={customers.find(c => c.id === selectedEntry.customer_id) || null}
+                    onClose={closeModal}
+                    onSave={saveChanges}
+                    wantListEntry={selectedEntry}
+                    editData={editData}
+                    setEditData={setEditData}
+                />
             )}
 
             {isAdding && (
@@ -242,16 +340,6 @@ const WantListDashboard = () => {
                     onSave={saveNewEntry}
                 />
             )}
-
-            <div>
-                {wantListEntries.length === 0 ? (
-                    <p>No want list entries found.</p>
-                ) : (
-                    wantListEntries.map(entry => (
-                        <WantListCard key={entry.id} entry={entry} onClick={() => setSelectedEntry(entry)} />
-                    ))
-                )}
-            </div>
         </main>
     );
 };

@@ -3,11 +3,21 @@ import { Customer, WantList, Plant } from '../../lib/types';
 
 interface CustomerInteractionModalProps {
     customer: Customer | null;
+    wantListEntry?: WantList | null;
+    editData?: WantList | null;
+    setEditData?: (data: WantList | null) => void;
     onClose: () => void;
-    onSave: (updatedCustomer: Customer, wantList?: { initial: string, notes: string, plants: Plant[] }) => void;
+    onSave: () => void;
 }
 
-const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ customer, onClose, onSave }) => {
+const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
+    customer,
+    wantListEntry,
+    editData,
+    setEditData,
+    onClose,
+    onSave
+}) => {
     const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
     const [editedCustomer, setEditedCustomer] = useState<Customer | null>(customer);
     const [includeWantList, setIncludeWantList] = useState(false);
@@ -30,6 +40,23 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
                 .catch(error => console.error('Error fetching want list entries:', error));
         }
     }, [customer]);
+
+    useEffect(() => {
+        if (wantListEntry && setEditData && !editData) {
+            setEditData(wantListEntry);
+        }
+    }, [wantListEntry, setEditData, editData]);
+
+    useEffect(() => {
+        if (wantListEntry) {
+            setWantListData({
+                initial: wantListEntry.initial,
+                notes: wantListEntry.notes,
+                plants: wantListEntry.plants
+            });
+            setIncludeWantList(true);
+        }
+    }, [wantListEntry]);
 
     // Keep this effect to set a blank Customer when adding:
     useEffect(() => {
@@ -59,26 +86,61 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
     };
 
     const handleAddPlant = () => {
-        setWantListData(prev => ({
-            ...prev,
-            plants: [...prev.plants, { id: Date.now(), want_list_entry_id: 0, name: '', size: '', quantity: 1, status: 'pending', plant_catalog_id: 0, requested_at: '', fulfilled_at: '' }]
-        }));
+        if (!editData || !setEditData) return;
+
+        setEditData({
+            ...editData,
+            plants: [
+                ...editData.plants,
+                {
+                    id: Date.now(),
+                    want_list_entry_id: editData.id,
+                    name: '',
+                    size: '',
+                    quantity: 1,
+                    status: 'pending',
+                    plant_catalog_id: 0,
+                    requested_at: '',
+                    fulfilled_at: ''
+                }
+            ]
+        });
     };
 
     const handlePlantChange = (index: number, field: keyof Plant, value: string | number) => {
-        setWantListData(prev => {
-            const updatedPlants = [...prev.plants];
-            updatedPlants[index] = { ...updatedPlants[index], [field]: value };
-            return { ...prev, plants: updatedPlants };
+        if (!editData || !setEditData) return;
+        
+        const updatedPlants = [...editData.plants];
+        updatedPlants[index] = { ...updatedPlants[index], [field]: value };
+        
+        setEditData({
+            ...editData,
+            plants: updatedPlants
         });
     };
 
     const handleSave = async () => {
         if (editedCustomer) {
-            await onSave(
-                editedCustomer, 
-                includeWantList ? wantListData : undefined
-            );
+            try {
+                console.log('Saving with data:', {
+                    customer: editedCustomer,
+                    wantList: includeWantList ? wantListData : undefined,
+                    wantListEntry
+                });
+
+                await onSave(
+                    editedCustomer,
+                    wantListEntry ? {
+                        ...wantListData,
+                        id: wantListEntry.id,
+                        customer_id: wantListEntry.customer_id,
+                        status: wantListEntry.status
+                    } : undefined
+                );
+            } catch (error) {
+                console.error('Error in handleSave:', error);
+                alert('Failed to save changes');
+            }
         }
     };
 
@@ -98,7 +160,7 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
                     customer_id: customer ? customer.id : 0,
                     initial: closeInitial,
                     notes: closeNotes,
-                    is_closed: true,
+                    status: 'completed',
                     spoken_to: '',
                     created_at_text: '',
                     closed_by: closeInitial
@@ -107,17 +169,17 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
             if (res.ok) {
                 setWantListEntries(prevEntries =>
                     prevEntries.map(entry =>
-                        entry.id === id ? { ...entry, is_closed: true } : entry
+                        entry.id === id ? { ...entry, status: 'completed' } : entry
                     )
                 );
-                alert('Entry marked as closed successfully!');
+                alert('Entry marked as completed successfully!');
             } else {
                 const errorData = await res.json();
-                alert(`Failed to mark as closed: ${errorData.error}`);
+                alert(`Failed to mark as completed: ${errorData.error}`);
             }
         } catch (error) {
-            console.error('Error marking as closed:', error);
-            alert('An unexpected error occurred while marking as closed.');
+            console.error('Error marking as completed:', error);
+            alert('An unexpected error occurred while marking as completed.');
         }
     };
 
@@ -161,7 +223,7 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
                                 Add Plant
                             </button>
                         </div>
-                        {wantListData.plants.map((plant, index) => (
+                        {editData && editData.plants.map((plant, index) => (
                             <div key={index} className="grid grid-cols-3 gap-2 mb-2">
                                 <input
                                     type="text"
@@ -261,37 +323,40 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ cus
                 <div className="mb-4">
                     <h3 className="text-lg font-semibold">Want List Items</h3>
                     <ul>
-                        {wantListEntries.map(entry => (
-                            <li key={entry.id} className="mb-2">
-                                <div className="font-medium">{entry.initial}</div>
-                                <div className="text-sm">{entry.notes}</div>
-                                <div className="text-sm">{entry.is_closed ? 'Closed' : 'Open'}</div>
-                                {!entry.is_closed && (
-                                    <div className="mt-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Initial"
-                                            value={closeInitial}
-                                            onChange={(e) => setCloseInitial(e.target.value)}
-                                            className="input-field mb-2"
-                                        />
-                                        <textarea
-                                            placeholder="Notes"
-                                            value={closeNotes}
-                                            onChange={(e) => setCloseNotes(e.target.value)}
-                                            className="input-field mb-2"
-                                        ></textarea>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleCloseWantListItem(entry.id)}
-                                            className="btn-secondary"
-                                        >
-                                            Close
-                                        </button>
-                                    </div>
-                                )}
-                            </li>
-                        ))}
+                        {wantListEntries.map(entry => {
+                            const status = entry.status || 'pending'; // Default to 'pending' if status is undefined
+                            return (
+                                <li key={entry.id} className="mb-2">
+                                    <div className="font-medium">{entry.initial}</div>
+                                    <div className="text-sm">{entry.notes}</div>
+                                    <div className="text-sm">{status.charAt(0).toUpperCase() + status.slice(1)}</div>
+                                    {status === 'pending' && (
+                                        <div className="mt-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Initial"
+                                                value={closeInitial}
+                                                onChange={(e) => setCloseInitial(e.target.value)}
+                                                className="input-field mb-2"
+                                            />
+                                            <textarea
+                                                placeholder="Notes"
+                                                value={closeNotes}
+                                                onChange={(e) => setCloseNotes(e.target.value)}
+                                                className="input-field mb-2"
+                                            ></textarea>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCloseWantListItem(entry.id)}
+                                                className="btn-secondary"
+                                            >
+                                                Complete
+                                            </button>
+                                        </div>
+                                    )}
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
                 {wantListForm}

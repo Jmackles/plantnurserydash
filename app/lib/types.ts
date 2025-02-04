@@ -86,4 +86,44 @@ export interface FilterState {
     searchQuery: string;
     winterizing: string[];
     carNative: string[];
+    sizeCategories: string[];
 }
+
+export const SizeCategories = {
+    UNSORTED: 'Unsorted (No Size Listed)',
+    GROUND_COVER: 'Ground Cover (0-6")',
+    SMALL: 'Small (6"-2\')',
+    MEDIUM: 'Medium (2\'-6\')',
+    LARGE: 'Large (6\'-15\')',
+    EXTRA_LARGE: 'Extra Large (15\'+)',
+} as const;
+
+// Helper function to parse and categorize sizes
+export const parsePlantSize = (sizeStr: string): string[] => {
+    if (!sizeStr || sizeStr.toLowerCase().includes('n/a')) {
+        return [SizeCategories.UNSORTED];
+    }
+    
+    // Convert all measurements to inches for consistent comparison
+    const getInches = (val: string): number => {
+        if (val.includes('\'')) {
+            return parseInt(val) * 12;
+        }
+        return parseInt(val);
+    };
+
+    // Extract the first height number (assuming it's the minimum height)
+    const heightMatch = sizeStr.match(/(\d+)(['"]|\s*H)/);
+    if (!heightMatch) return [SizeCategories.UNSORTED];
+
+    const height = getInches(heightMatch[1] + (heightMatch[2] || ''));
+    
+    // Categorize based on height
+    if (height <= 6) return [SizeCategories.GROUND_COVER];
+    if (height <= 24) return [SizeCategories.SMALL];
+    if (height > 24 && height <= 72) return [SizeCategories.MEDIUM];
+    if (height > 72 && height <= 180) return [SizeCategories.LARGE];
+    if (height > 180) return [SizeCategories.EXTRA_LARGE];
+    
+    return [SizeCategories.UNSORTED];
+};

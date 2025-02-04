@@ -9,12 +9,71 @@ const openDb = async () => {
   });
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   const db = await openDb();
+  const url = new URL(request.url);
+  const filters = {
+    search: url.searchParams.get('search'),
+    sunExposure: url.searchParams.getAll('sunExposure[]'),
+    departments: url.searchParams.getAll('departments[]'),
+    foliageType: url.searchParams.getAll('foliageType[]'),
+    botanicalNames: url.searchParams.getAll('botanicalNames[]'),
+    winterizing: url.searchParams.getAll('winterizing[]'),
+    carNative: url.searchParams.getAll('carNative[]'),
+    sizeRange: url.searchParams.getAll('sizeRange[]'),
+    deerResistance: url.searchParams.getAll('deerResistance[]'),
+    classification: url.searchParams.getAll('classification[]')
+  };
+
+  let query = 'SELECT * FROM PlantCatalog WHERE 1=1';
+  const params: any[] = [];
+
+  if (filters.search) {
+    query += ' AND (tag_name LIKE ? OR botanical LIKE ?)';
+    params.push(`%${filters.search}%`, `%${filters.search}%`);
+  }
+  if (filters.sunExposure.length > 0) {
+    query += ' AND (' + filters.sunExposure.map(() => 'sun_exposure = ?').join(' OR ') + ')';
+    params.push(...filters.sunExposure);
+  }
+  if (filters.departments.length > 0) {
+    query += ' AND (' + filters.departments.map(() => 'department = ?').join(' OR ') + ')';
+    params.push(...filters.departments);
+  }
+  if (filters.foliageType.length > 0) {
+    query += ' AND (' + filters.foliageType.map(() => 'foliage_type = ?').join(' OR ') + ')';
+    params.push(...filters.foliageType);
+  }
+  if (filters.botanicalNames.length > 0) {
+    query += ' AND (' + filters.botanicalNames.map(() => 'botanical = ?').join(' OR ') + ')';
+    params.push(...filters.botanicalNames);
+  }
+  if (filters.winterizing.length > 0) {
+    query += ' AND (' + filters.winterizing.map(() => 'winterizing = ?').join(' OR ') + ')';
+    params.push(...filters.winterizing);
+  }
+  if (filters.carNative.length > 0) {
+    query += ' AND (' + filters.carNative.map(() => 'car_native = ?').join(' OR ') + ')';
+    params.push(...filters.carNative);
+  }
+  if (filters.sizeRange.length > 0) {
+    query += ' AND (' + filters.sizeRange.map(() => 'size LIKE ?').join(' OR ') + ')';
+    params.push(...filters.sizeRange.map(size => `%${size}%`));
+  }
+  if (filters.deerResistance.length > 0) {
+    query += ' AND (' + filters.deerResistance.map(() => 'deer_resistance = ?').join(' OR ') + ')';
+    params.push(...filters.deerResistance);
+  }
+  if (filters.classification.length > 0) {
+    query += ' AND (' + filters.classification.map(() => 'classification = ?').join(' OR ') + ')';
+    params.push(...filters.classification);
+  }
+
   try {
-    const plants = await db.all('SELECT * FROM PlantCatalog');
+    const plants = await db.all(query, params);
     return NextResponse.json(plants);
   } catch (error) {
+    console.error('Error fetching plants:', error);
     return NextResponse.json({ error: 'Failed to fetch plants' }, { status: 500 });
   }
 }

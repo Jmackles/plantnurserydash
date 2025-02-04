@@ -5,7 +5,7 @@
 /* Add any custom global styles here */
 
 :root {
-  --background: #f7f7f7; /* Soft pastel background */
+  --background: #b7ff9b; /* Soft pastel background */
   --foreground: #333333; /* Darker text for better contrast */
 }
 
@@ -135,6 +135,11 @@ body {
   .form-hint {
     @apply text-sm text-sage-600 mt-1;
   }
+}
+
+/* Hide Next.js development overlay */
+#__next-build-watcher {
+    display: none !important;
 }
 
 @layer utilities {

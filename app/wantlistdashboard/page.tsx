@@ -200,27 +200,79 @@ const WantListDashboard = () => {
         }
     };
 
-    const handleBulkClose = async () => {
+    const handleBulkAction = async (action: 'complete' | 'cancel', data: { initial: string, notes: string }) => {
+        if (!data.initial) {
+            alert('Please enter your initials');
+            return;
+        }
+
         try {
-            console.log(`Bulk closing entries: ${selectedEntries} with initial: ${bulkCloseData.initial} and notes: ${bulkCloseData.notes}`);
-            await Promise.all(
-                selectedEntries.map(entryId =>
-                    fetch(`/api/want-list/${entryId}/close`, {
+            const updatedEntries = await Promise.all(
+                selectedEntries.map(async (entryId) => {
+                    const res = await fetch(`/api/want-list/${entryId}/status`, {
                         method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ initial: bulkCloseData.initial, notes: bulkCloseData.notes }),
-                    })
-                )
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            status: action,
+                            initial: data.initial,
+                            notes: data.notes
+                        })
+                    });
+
+                    if (!res.ok) {
+                        throw new Error(`Failed to update entry ${entryId}`);
+                    }
+
+                    return await res.json();
+                })
             );
+
+            setWantListEntries(prevEntries =>
+                prevEntries.map(entry => {
+                    const updated = updatedEntries.find(u => u.id === entry.id);
+                    return updated || entry;
+                })
+            );
+
+            setSelectedEntries([]);
+        } catch (error) {
+            console.error('Error in bulk action:', error);
+            alert('Failed to update some entries');
+        }
+    };
+
+    const handleStatusChange = async (entryId: number, status: 'completed' | 'canceled', data: { initial: string, notes: string }) => {
+        if (!data.initial) {
+            alert('Please enter your initials');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/want-list/${entryId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    status,
+                    initial: data.initial,
+                    notes: data.notes
+                })
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.message || 'Failed to update status');
+            }
+
+            const updatedEntry = await res.json();
+            
             setWantListEntries(prevEntries =>
                 prevEntries.map(entry =>
-                    selectedEntries.includes(entry.id) ? { ...entry, status: 'completed', closed_by: bulkCloseData.initial } : entry
+                    entry.id === entryId ? updatedEntry : entry
                 )
             );
         } catch (error) {
-            console.error('Error bulk closing entries:', error);
+            console.error('Error updating status:', error);
+            alert(error.message || 'Failed to update status');
         }
     };
 
@@ -278,17 +330,18 @@ const WantListDashboard = () => {
             </div>
 
             {selectedEntries.length > 0 && (
-                <div className="mb-6 p-4 bg-sage-50 rounded-lg border border-sage-200">
+                <div className="mb-6">
                     <BulkActionsBar
+                        selectedCount={selectedEntries.length}
                         onClose={() => setSelectedEntries([])}
-                        onBulkClose={handleBulkClose}
-                        bulkCloseData={bulkCloseData}
-                        setBulkCloseData={setBulkCloseData}
+                        onBulkAction={handleBulkAction}
+                        bulkActionData={bulkCloseData}
+                        setBulkActionData={setBulkCloseData}
                     />
                 </div>
             )}
 
-            <div className="grid gap-6">
+            <div className="grid gap-6 mb-20">
                 {paginatedEntries.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-lg shadow">
                         <p className="text-sage-600">No want list entries found.</p>
@@ -299,6 +352,15 @@ const WantListDashboard = () => {
                             key={entry.id} 
                             entry={entry} 
                             onClick={() => setSelectedEntry(entry)}
+                            onStatusChange={(status, data) => handleStatusChange(entry.id, status, data)}
+                            onSelect={(selected) => {
+                                if (selected) {
+                                    setSelectedEntries(prev => [...prev, entry.id]);
+                                } else {
+                                    setSelectedEntries(prev => prev.filter(id => id !== entry.id));
+                                }
+                            }}
+                            isSelected={selectedEntries.includes(entry.id)}
                         />
                     ))
                 )}

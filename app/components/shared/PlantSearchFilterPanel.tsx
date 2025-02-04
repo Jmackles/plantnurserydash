@@ -1,4 +1,5 @@
 import React from 'react';
+import { SizeCategories } from '../../lib/types';
 
 export interface FilterState {
 	// Updated filter keys including new ones
@@ -11,6 +12,7 @@ export interface FilterState {
 	searchQuery: string;
 	winterizing: string[];
 	carNative: string[];
+	sizeCategories: string[];
 }
 
 interface PlantSearchFilterPanelProps {
@@ -69,27 +71,31 @@ const PlantSearchFilterPanel: React.FC<PlantSearchFilterPanelProps> = ({
 			)}
 			<aside 
 				className={`
-					fixed lg:sticky top-0 left-0 h-full 
+					fixed lg:sticky top-0 left-0 h-screen
 					bg-white border-r border-gray-200
 					transition-all duration-300 ease-in-out
-					overflow-y-auto z-50 lg:z-0
+					z-50 lg:z-0
 					w-[280px] lg:w-80
+					flex flex-col
 					${isVisible ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
 				`}
 			>
-				<div className="p-4">
-					<div className="flex justify-between items-center mb-4">
+				<div className="p-4 border-b border-gray-200">
+					<div className="flex justify-between items-center">
 						<h2 className="text-xl font-bold text-[hsl(var(--accent-hsl))]">Filters</h2>
 						<button
 							onClick={toggleVisibility}
 							className="lg:hidden p-2 hover:bg-gray-100 rounded-full"
 						>
 							<span className="sr-only">Close filters</span>
-							✕
+									✕
 						</button>
 					</div>
+				</div>
+				
+				<div className="flex-1 overflow-y-auto p-4">
 					{/* Search Query Input */}
-					<div className="mb-4">
+					<div className="mb-4 sticky top-0 bg-white z-10 pb-2">
 						<label className="block font-medium mb-1">Search</label>
 						<input 
 							type="text" 
@@ -153,6 +159,26 @@ const PlantSearchFilterPanel: React.FC<PlantSearchFilterPanelProps> = ({
 								>
 									{option === '1' ? 'Native' : 'Not Native'}
 								</button>
+							))}
+						</div>
+					</div>
+					 {/* Size Categories Filter */}
+					 <div className="mb-4">
+						<label className="block font-medium mb-1">Plant Size</label>
+						<div className="flex flex-col gap-2">
+							{Object.values(SizeCategories).map(category => (
+								<label
+									key={category}
+									className="flex items-center space-x-2"
+								>
+									<input
+										type="checkbox"
+										checked={filters.sizeCategories.includes(category)}
+										onChange={() => toggleFilter('sizeCategories', category)}
+										className="form-checkbox h-4 w-4 text-blue-600"
+									/>
+									<span className="text-sm">{category}</span>
+								</label>
 							))}
 						</div>
 					</div>

@@ -7,7 +7,7 @@ interface CustomerInteractionModalProps {
     editData?: WantList | null;
     setEditData?: (data: WantList | null) => void;
     onClose: () => void;
-    onSave: () => void;
+    onSave: (customer: Customer, wantListEntry?: WantList) => void;
 }
 
 const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
@@ -28,18 +28,39 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
     });
     const [closeInitial, setCloseInitial] = useState('');
     const [closeNotes, setCloseNotes] = useState('');
+    const [plantCatalog, setPlantCatalog] = useState<Plant[]>([]);
+    const [suggestedPlants, setSuggestedPlants] = useState<Plant[]>([]);
 
     useEffect(() => {
         console.log('CustomerInteractionModal mounted with customer:', customer);
         if (customer) {
             fetch('/api/want-list')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error('Failed to fetch want list entries');
+                    }
+                    return res.json();
+                })
                 .then((entries: WantList[]) => {
                     setWantListEntries(entries.filter(entry => entry.customer_id === customer.id));
                 })
                 .catch(error => console.error('Error fetching want list entries:', error));
         }
     }, [customer]);
+
+    useEffect(() => {
+        fetch('/api/knowledgebase')
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Failed to fetch plant catalog');
+                }
+                return res.json();
+            })
+            .then((plants: Plant[]) => {
+                setPlantCatalog(plants.data); // Adjust based on the structure of the response
+            })
+            .catch(error => console.error('Error fetching plant catalog:', error));
+    }, []);
 
     useEffect(() => {
         if (wantListEntry && setEditData && !editData) {
@@ -86,15 +107,13 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
     };
 
     const handleAddPlant = () => {
-        if (!editData || !setEditData) return;
-
-        setEditData({
-            ...editData,
+        setWantListData(prev => ({
+            ...prev,
             plants: [
-                ...editData.plants,
+                ...prev.plants,
                 {
                     id: Date.now(),
-                    want_list_entry_id: editData.id,
+                    want_list_entry_id: 0, // Set default ID for new want list entries
                     name: '',
                     size: '',
                     quantity: 1,
@@ -104,22 +123,18 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                     fulfilled_at: ''
                 }
             ]
-        });
+        }));
     };
 
     const handlePlantChange = (index: number, field: keyof Plant, value: string | number) => {
-        if (!editData || !setEditData) return;
-        
-        const updatedPlants = [...editData.plants];
-        updatedPlants[index] = { ...updatedPlants[index], [field]: value };
-        
-        setEditData({
-            ...editData,
-            plants: updatedPlants
+        setWantListData(prev => {
+            const updatedPlants = [...prev.plants];
+            updatedPlants[index] = { ...updatedPlants[index], [field]: value };
+            return { ...prev, plants: updatedPlants };
         });
     };
 
-    const handleSave = async () => {
+    const handleSave = async (): Promise<void> => {
         if (editedCustomer) {
             try {
                 console.log('Saving with data:', {
@@ -134,7 +149,10 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                         ...wantListData,
                         id: wantListEntry.id,
                         customer_id: wantListEntry.customer_id,
-                        status: wantListEntry.status
+                        status: wantListEntry.status,
+                        spoken_to: wantListEntry.spoken_to || '',
+                        created_at_text: wantListEntry.created_at_text || '',
+                        closed_by: wantListEntry.closed_by || ''
                     } : undefined
                 );
             } catch (error) {
@@ -183,6 +201,11 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
         }
     };
 
+    const suggestPlants = (plantName: string) => {
+        const suggestions = plantCatalog.filter(plant => plant.name && plant.name.toLowerCase().includes(plantName.toLowerCase()));
+        setSuggestedPlants(suggestions);
+    };
+
     const wantListForm = (
         <div className="border-t mt-4 pt-4">
             <div className="flex items-center mb-4">
@@ -223,13 +246,16 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                                 Add Plant
                             </button>
                         </div>
-                        {editData && editData.plants.map((plant, index) => (
+                        {wantListData.plants.map((plant, index) => (
                             <div key={index} className="grid grid-cols-3 gap-2 mb-2">
                                 <input
                                     type="text"
                                     placeholder="Name"
                                     value={plant.name}
-                                    onChange={(e) => handlePlantChange(index, 'name', e.target.value)}
+                                    onChange={(e) => {
+                                        handlePlantChange(index, 'name', e.target.value);
+                                        suggestPlants(e.target.value);
+                                    }}
                                     className="input-field"
                                 />
                                 <input
@@ -246,6 +272,18 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                                     onChange={(e) => handlePlantChange(index, 'quantity', parseInt(e.target.value))}
                                     className="input-field"
                                 />
+                                {suggestedPlants.length > 0 && (
+                                    <div className="col-span-3 mt-2">
+                                        <label className="block text-sm font-medium text-gray-700">Suggested Plants</label>
+                                        <ul className="list-disc list-inside">
+                                            {suggestedPlants.map((suggestedPlant, i) => (
+                                                <li key={i} className="text-sm text-gray-600">
+                                                    {suggestedPlant.name}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

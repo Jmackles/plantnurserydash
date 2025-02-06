@@ -6,6 +6,8 @@ import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } f
 import WantListCard from './../components/cards/WantListCard';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
 import BulkActionsBar from '../components/shared/BulkActionsBar';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const WantListDashboard = () => {
     const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
@@ -45,7 +47,6 @@ const WantListDashboard = () => {
         try {
             const entries = await fetchWantListEntries();
             if (Array.isArray(entries)) {
-                // Sort entries by status: pending first, then completed, then canceled
                 const sortedEntries = entries.sort((a, b) => {
                     const statusOrder = { pending: 1, completed: 2, canceled: 3 };
                     return statusOrder[a.status] - statusOrder[b.status];
@@ -74,7 +75,6 @@ const WantListDashboard = () => {
         fetchEntries();
         fetchCustomerList();
 
-        // Restore page and scroll position from localStorage
         const savedPage = localStorage.getItem('currentPage');
         const savedScrollPosition = localStorage.getItem('scrollPosition');
         if (savedPage) {
@@ -96,7 +96,6 @@ const WantListDashboard = () => {
     }, [selectedEntry]);
 
     useEffect(() => {
-        // Save page and scroll position to localStorage before unmounting
         return () => {
             localStorage.setItem('currentPage', String(currentPage));
             localStorage.setItem('scrollPosition', String(window.scrollY));
@@ -154,8 +153,9 @@ const WantListDashboard = () => {
                 throw new Error(data.error || 'Failed to save changes');
             }
 
-            await fetchEntries(); // Refresh the list
+            await fetchEntries();
             closeModal();
+            toast.success('Changes saved successfully!');
         } catch (error) {
             console.error('Error saving changes:', error);
             alert('Failed to save changes: ' + (error.message || 'Unknown error'));
@@ -198,8 +198,10 @@ const WantListDashboard = () => {
             console.log('New want list entry added successfully!');
             await fetchEntries();
             closeModal();
+            toast.success('New entry added successfully!');
         } catch (error) {
             console.error('Error adding new entry:', error);
+            toast.error('Failed to add new entry.');
         }
     };
 
@@ -216,11 +218,14 @@ const WantListDashboard = () => {
             if (res.ok) {
                 console.log('Entry marked as closed successfully!');
                 fetchEntries();
+                toast.success('Entry marked as closed successfully!');
             } else {
                 console.error('Failed to mark entry as closed');
+                toast.error('Failed to mark entry as closed.');
             }
         } catch (error) {
             console.error('Error marking as closed:', error);
+            toast.error('Error marking entry as closed.');
         }
     };
 
@@ -232,7 +237,7 @@ const WantListDashboard = () => {
 
         try {
             console.log(`Performing bulk action: ${action} with data:`, data);
-            const status = action === 'complete' ? 'completed' : 'canceled'; // Map action to correct status
+            const status = action === 'complete' ? 'completed' : 'canceled';
             
             const updatedEntries = await Promise.all(
                 selectedEntries.map(async (entryId) => {
@@ -256,11 +261,12 @@ const WantListDashboard = () => {
                 })
             );
 
-            await fetchEntries(); // Refresh the list after bulk update
+            await fetchEntries();
             setSelectedEntries([]);
+            toast.success('Bulk action completed successfully!');
         } catch (error) {
             console.error('Error in bulk action:', error);
-            alert('Failed to update some entries');
+            toast.error('Failed to update some entries.');
         }
     };
 
@@ -294,9 +300,10 @@ const WantListDashboard = () => {
                     entry.id === entryId ? updatedEntry : entry
                 )
             );
+            toast.success('Status updated successfully!');
         } catch (error) {
             console.error('Error updating status:', error);
-            alert(error.message || 'Failed to update status');
+            toast.error('Failed to update status.');
         }
     };
 
@@ -426,6 +433,7 @@ const WantListDashboard = () => {
                     onSave={saveNewEntry}
                 />
             )}
+            <ToastContainer />
         </main>
     );
 };

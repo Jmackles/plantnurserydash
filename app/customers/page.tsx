@@ -13,7 +13,12 @@ const fetchCustomers = async () => {
         console.error('Error fetching customers:', response.status, errorText);
         throw new Error(errorText || 'Failed to fetch customers');
     }
-    return response.json();
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return response.json();
+    } else {
+        throw new Error('Unexpected response format');
+    }
 };
 
 const addCustomer = async (customer: Omit<Customer, 'id'>) => {
@@ -28,7 +33,12 @@ const addCustomer = async (customer: Omit<Customer, 'id'>) => {
         console.error('Error adding customer:', response.status, errorText);
         throw new Error(errorText || 'Failed to add customer');
     }
-    return response.json();
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return response.json();
+    } else {
+        throw new Error('Unexpected response format');
+    }
 };
 
 const updateCustomer = async (customer: Customer) => {
@@ -43,7 +53,12 @@ const updateCustomer = async (customer: Customer) => {
         console.error('Error updating customer:', response.status, errorText);
         throw new Error(errorText || 'Failed to update customer');
     }
-    return response.json();
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return response.json();
+    } else {
+        throw new Error('Unexpected response format');
+    }
 };
 
 const Dashboard = () => {

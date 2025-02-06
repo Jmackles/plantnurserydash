@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { WantList } from '../../lib/types';
+import { Tooltip } from 'react-tooltip';
 
 interface WantListCardProps {
     entry: WantList;
@@ -29,19 +30,18 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
             case 'completed':
                 return 'bg-green-100 text-green-800';
             case 'canceled':
-                return 'bg-red-100 text-red-800';
+                return 'bg-gray-300 text-gray-800'; // Darker gray for canceled
             default:
                 return 'bg-gray-100 text-gray-800';
         }
     };
 
-    // Add shading that trends towards red for canceled entries and green for completed entries
     const getCardStyle = (status: string) => {
         switch (status) {
             case 'completed':
-                return 'bg-green-100 bg-opacity-20';
+                return 'bg-green-50'; // Light green background for completed
             case 'canceled':
-                return 'bg-gray-100 bg-opacity-20';
+                return 'bg-gray-200'; // Darker gray background for canceled
             default:
                 return '';
         }
@@ -76,9 +76,13 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                     <span 
                         className={`px-2 py-1 rounded-full text-sm ${getStatusColor(status)}`}
                         title={status.charAt(0).toUpperCase() + status.slice(1)}
+                        data-tooltip-id={`status-tooltip-${entry.id}`}
                     >
                         {status.charAt(0).toUpperCase() + status.slice(1)}
                     </span>
+                    <Tooltip id={`status-tooltip-${entry.id}`} place="top" effect="solid">
+                        {status === 'pending' ? 'This ticket is pending' : status === 'completed' ? 'This ticket is completed' : 'This ticket is canceled'}
+                    </Tooltip>
                 </div>
 
                 {entry.notes && (

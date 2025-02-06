@@ -52,7 +52,7 @@ const Dashboard = () => {
     const [filter, setFilter] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isAdding, setIsAdding] = useState(false);
-    const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(true);
+    const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(false); // Set to false to hide by default
 
     useEffect(() => {
         fetchCustomers()

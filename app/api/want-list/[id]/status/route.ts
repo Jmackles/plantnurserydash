@@ -9,25 +9,30 @@ const openDb = async () => {
     });
 };
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, context: { params: { id: string } }) {
     const db = await openDb();
     let data;
     
     try {
         const body = await request.json();
         const { status, initial, notes } = body;
+        const { id } = context.params;
+
+        console.log('Processing status update:', { id, status, initial, notes });
 
         if (!initial?.trim()) {
+            console.error('Initials are required');
             return NextResponse.json({ error: 'Initials are required' }, { status: 400 });
         }
 
         if (!['completed', 'canceled', 'pending'].includes(status)) {
+            console.error('Invalid status:', status);
             return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
         }
 
         await db.run('BEGIN TRANSACTION');
 
-        // Update want list entry and check for changes
+        // Update want list entry
         const result = await db.run(`
             UPDATE want_list 
             SET status = ?,
@@ -35,31 +40,26 @@ export async function PUT(request: Request, { params }: { params: { id: string }
                 notes = CASE 
                     WHEN notes IS NULL OR notes = '' THEN ?
                     ELSE notes || ' | ' || ?
-                END,
-                closed_at = CURRENT_TIMESTAMP
+                END
             WHERE id = ?
-        `, [status, initial, notes || '', notes || '', params.id]);
-
-        if (result.changes === 0) {
-            throw new Error('No want list entry found or update not performed');
-        }
+        `, [status, initial, notes || '', notes || '', id]);
 
         // Update associated plants
         await db.run(`
             UPDATE plants 
             SET status = ?
             WHERE want_list_entry_id = ? AND status = 'pending'
-        `, [status, params.id]);
+        `, [status, id]);
 
         // Fetch updated entry and its plants
-        const updatedEntry = await db.get('SELECT * FROM want_list WHERE id = ?', [params.id]);
-        const updatedPlants = await db.all('SELECT * FROM plants WHERE want_list_entry_id = ?', [params.id]);
-
-        data = { ...updatedEntry, plants: updatedPlants };
+        const updatedEntry = await db.get('SELECT * FROM want_list WHERE id = ?', [id]);
+        const updatedPlants = await db.all('SELECT * FROM plants WHERE want_list_entry_id = ?', [id]);
 
         await db.run('COMMIT');
 
-        return NextResponse.json(data);
+        console.log('Status update successful:', { id, status });
+        return NextResponse.json({ ...updatedEntry, plants: updatedPlants });
+
     } catch (error) {
         console.error('Status update error:', error);
         await db.run('ROLLBACK');

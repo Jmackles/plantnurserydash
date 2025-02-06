@@ -5,6 +5,7 @@ import { WantList, Customer, Plant } from './../lib/types';
 import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } from '../../lib/api';
 import WantListCard from './../components/cards/WantListCard';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
+import BulkActionsBar from '../components/shared/BulkActionsBar';
 
 const WantListDashboard = () => {
     const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
@@ -44,7 +45,12 @@ const WantListDashboard = () => {
         try {
             const entries = await fetchWantListEntries();
             if (Array.isArray(entries)) {
-                setWantListEntries(entries);
+                // Sort entries by status: pending first, then completed, then canceled
+                const sortedEntries = entries.sort((a, b) => {
+                    const statusOrder = { pending: 1, completed: 2, canceled: 3 };
+                    return statusOrder[a.status] - statusOrder[b.status];
+                });
+                setWantListEntries(sortedEntries);
             } else {
                 console.warn('Unexpected data format:', entries);
                 setWantListEntries([]);
@@ -67,6 +73,16 @@ const WantListDashboard = () => {
     useEffect(() => {
         fetchEntries();
         fetchCustomerList();
+
+        // Restore page and scroll position from localStorage
+        const savedPage = localStorage.getItem('currentPage');
+        const savedScrollPosition = localStorage.getItem('scrollPosition');
+        if (savedPage) {
+            setCurrentPage(Number(savedPage));
+        }
+        if (savedScrollPosition) {
+            window.scrollTo(0, Number(savedScrollPosition));
+        }
     }, []);
 
     useEffect(() => {
@@ -78,6 +94,14 @@ const WantListDashboard = () => {
             setEditData(selectedEntry);
         }
     }, [selectedEntry]);
+
+    useEffect(() => {
+        // Save page and scroll position to localStorage before unmounting
+        return () => {
+            localStorage.setItem('currentPage', String(currentPage));
+            localStorage.setItem('scrollPosition', String(window.scrollY));
+        };
+    }, [currentPage]);
 
     const closeModal = () => {
         setSelectedEntry(null);
@@ -207,33 +231,32 @@ const WantListDashboard = () => {
         }
 
         try {
+            console.log(`Performing bulk action: ${action} with data:`, data);
+            const status = action === 'complete' ? 'completed' : 'canceled'; // Map action to correct status
+            
             const updatedEntries = await Promise.all(
                 selectedEntries.map(async (entryId) => {
+                    console.log(`Updating entry ${entryId} with status: ${status}`);
                     const res = await fetch(`/api/want-list/${entryId}/status`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            status: action,
+                            status,
                             initial: data.initial,
                             notes: data.notes
                         })
                     });
 
                     if (!res.ok) {
-                        throw new Error(`Failed to update entry ${entryId}`);
+                        const error = await res.json();
+                        throw new Error(`Failed to update entry ${entryId}: ${error.message}`);
                     }
 
                     return await res.json();
                 })
             );
 
-            setWantListEntries(prevEntries =>
-                prevEntries.map(entry => {
-                    const updated = updatedEntries.find(u => u.id === entry.id);
-                    return updated || entry;
-                })
-            );
-
+            await fetchEntries(); // Refresh the list after bulk update
             setSelectedEntries([]);
         } catch (error) {
             console.error('Error in bulk action:', error);
@@ -248,6 +271,7 @@ const WantListDashboard = () => {
         }
 
         try {
+            console.log(`Updating status for entry ${entryId} to ${status} with data:`, data);
             const res = await fetch(`/api/want-list/${entryId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },

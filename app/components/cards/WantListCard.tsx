@@ -35,11 +35,23 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
         }
     };
 
+    // Add shading that trends towards red for canceled entries and green for completed entries
+    const getCardStyle = (status: string) => {
+        switch (status) {
+            case 'completed':
+                return 'bg-green-100 bg-opacity-20';
+            case 'canceled':
+                return 'bg-gray-100 bg-opacity-20';
+            default:
+                return '';
+        }
+    };
+
     const status = entry.status || 'pending'; // Default to 'pending' if status is undefined
 
     return (
         <div className={`relative bg-white rounded-lg shadow-md transition-all duration-300 p-4 
-            ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-lg'}`}
+            ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-lg'} ${getCardStyle(status)}`}
         >
             <div className="absolute top-2 left-2">
                 <input
@@ -63,6 +75,7 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                     </div>
                     <span 
                         className={`px-2 py-1 rounded-full text-sm ${getStatusColor(status)}`}
+                        title={status.charAt(0).toUpperCase() + status.slice(1)}
                     >
                         {status.charAt(0).toUpperCase() + status.slice(1)}
                     </span>

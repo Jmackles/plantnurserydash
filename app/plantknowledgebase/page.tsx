@@ -142,7 +142,7 @@ const PlantKnowledgeBase = () => {
     const filteredPlants = plants;
 
     return (
-        <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
+        <div className="flex flex-col lg:flex-row min-h-screen bg-soft-pastel-green">
             <PlantSearchFilterPanel
                 filters={filters}
                 setFilters={setFilters}

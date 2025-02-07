@@ -12,7 +12,7 @@ const PlantDetailsHeader = ({ plant }: { plant: PlantCatalog }) => {
 
     return (
         <div>
-            <h1 className="text-3xl font-bold text-sage-700 mb-8">{plant.tag_name}</h1>
+            <h1 className="text-3xl font-bold text-muted-sage-green mb-8">{plant.tag_name}</h1>
             <Image 
                 src={imageUrl}
                 alt={plant.tag_name || 'Plant Image'}

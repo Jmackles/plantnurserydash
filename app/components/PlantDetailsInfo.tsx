@@ -8,7 +8,7 @@ const translateValue = (value: boolean | undefined) => {
 
 const PlantDetailsInfo = ({ plant }: { plant: BenchTags }) => {
     return (
-        <div className="bg-white shadow-md rounded-lg p-6">
+        <div className="bg-white shadow-md rounded-lg p-6 border border-muted-sage-green">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <p><strong>Botanical:</strong> {plant.botanical_id}</p>
                 <p><strong>Department:</strong> {plant.Department}</p>

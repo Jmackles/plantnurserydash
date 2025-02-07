@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PlantCatalog } from '../../lib/types';
 import WinterizingBadge from '../badges/WinterizingBadge';
+import SunExposureIcon from '../icons/SunExposureIcon';
 
 interface PlantCardProps {
     plant: PlantCatalog;
@@ -21,13 +22,31 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
     const [tempPreviewUrl, setTempPreviewUrl] = useState<string | null>(null);
 
     const getSunExposure = () => {
-        const exposures = [];
-        if (plant.melting_sun) exposures.push('☀️☀️');
-        if (plant.full_sun) exposures.push('☀️');
-        if (plant.part_sun) exposures.push('⛅');
-        if (plant.shade) exposures.push('🌥️');
-        return exposures.join(' ');
-    };
+        // Build an array of supported exposures based on an explicit check against 1.
+        const exposures: SunType[] = [];
+        if (plant.melting_sun === 1) exposures.push('melting');
+        if (plant.full_sun === 1) exposures.push('full');
+        if (plant.part_sun === 1) exposures.push('part');
+        if (plant.shade === 1) exposures.push('shade');
+      
+        // Determine intensity based on the number of supported exposures.
+        // (You can adjust this logic as needed.)
+        let intensity: 'low' | 'medium' | 'high';
+        if (exposures.length >= 3) {
+          intensity = exposures.length === 4 ? 'low' : 'medium';
+        } else {
+          intensity = 'high';
+        }
+      
+        return (
+          <div className="flex items-center gap-2">
+            {exposures.map((exp) => (
+              <SunExposureIcon key={exp} type={exp} active intensity={intensity} />
+            ))}
+          </div>
+        );
+      };
+      
 
     const getGrowthRateIcon = (rate: string = '') => {
         switch(rate.toLowerCase()) {
@@ -95,13 +114,13 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         <Link href={`/plantknowledgebase/${plant.id}`} key={reloadKey}>
             <div>
                 <div 
-                    className={`group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-sage-100 hover:border-sage-300 ${isDragging ? 'border-dashed border-4 border-sage-500' : ''}`}
+                    className={`group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-muted-sage-green hover:border-light-grayish-green ${isDragging ? 'border-dashed border-4 border-sage-500' : ''}`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
                     {displaySrc ? (
-                        <div className="relative h-56 overflow-hidden bg-sage-50">
+                        <div className="relative h-56 overflow-hidden bg-light-grayish-green">
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
                             <Image 
                                 src={displaySrc}
@@ -123,16 +142,16 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                             </div>
                         </div>
                     ) : (
-                        <div className="h-56 bg-sage-50 flex items-center justify-center">
-                            <span className="text-sage-400">No Image Available</span>
+                        <div className="h-56 bg-light-grayish-green flex items-center justify-center">
+                            <span className="text-muted-sage-green">No Image Available</span>
                         </div>
                     )}
-                    <div className="p-5 space-y-4">
-                        <div className="border-b border-sage-100 pb-3">
-                            <h3 className="text-xl font-semibold text-sage-800 mb-1 line-clamp-2">
+                    <div className="p-5 space-y-4 select-text">
+                        <div className="border-b border-muted-sage-green pb-3">
+                            <h3 className="text-xl font-semibold text-muted-sage-green mb-1 line-clamp-2">
                                 {plant.tag_name}
                             </h3>
-                            <p className="text-sm text-sage-600 italic">
+                            <p className="text-sm text-muted-sage-green italic">
                                 {plant.botanical}
                             </p>
                         </div>
@@ -156,7 +175,7 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                                     <span className="font-semibold">Notes:</span> {plant.notes}
                                 </div>
                             )}
-                            <div className="col-span-2 flex justify-between items-center pt-2 border-t border-sage-100">
+                            <div className="col-span-2 flex justify-between items-center pt-2 border-t border-muted-sage-green">
                                 <span className="font-semibold">Warranty:</span> {plant.no_warranty ? 'No' : 'Yes'}
                             </div>
                         </div>

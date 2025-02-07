@@ -54,7 +54,8 @@ const PlantKnowledgeBase = () => {
                 const params = new URLSearchParams({
                     page: currentPage.toString(),
                     limit: itemsPerPage.toString(),
-                    sort: sortField
+                    sort: sortField,
+                    includeImages: 'true'  // Add this parameter
                 });
 
                 // Add all filter parameters
@@ -78,13 +79,16 @@ const PlantKnowledgeBase = () => {
                         params.append('sizeCategories[]', value));
                 }
 
+                console.log('Fetching plants with params:', params.toString());
+
                 const response = await fetch(`/api/knowledgebase?${params}`);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
                 const result = await response.json();
+                console.log('Fetched plants:', result);
                 
                 if (mounted) {
-                    setPlants(result.data || []);
+                    setPlants(result.data);
                     setTotalPages(result.pagination?.totalPages || 1);
                 }
             } catch (error) {

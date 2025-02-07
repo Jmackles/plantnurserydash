@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/line-clamp": "^0.4.4",
+    "@vercel/postgres": "^0.10.0",
     "axios": "^1.7.9",
     "detect-libc": "^2.0.3",
     "dotenv": "^16.4.7",
@@ -22,6 +23,7 @@
     "node-adodb": "^5.0.3",
     "node-odbc": "^0.2.10",
     "odbc": "^2.4.9",
+    "postgres": "^3.4.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-responsive-carousel": "^3.2.23",
@@ -50,6 +52,7 @@
   },
   "type": "module",
   "trustedDependencies": [
+    "bufferutil",
     "msnodesqlv8",
     "node-odbc",
     "odbc",

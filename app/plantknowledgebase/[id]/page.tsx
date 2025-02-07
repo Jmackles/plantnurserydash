@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { PlantCatalog } from '../../lib/types';
+import { PlantCatalog, CatalogImage } from '../../lib/types';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { Toast } from '../../components/shared/Toast';
 import { useToast } from '../../hooks/useToast';
@@ -15,7 +15,7 @@ const PlantKnowledgeBase = () => {
     const [plant, setPlant] = useState<PlantCatalog | null>(null);
     const [loading, setLoading] = useState(true);
     const { showToast, toast } = useToast();
-    const [images, setImages] = useState<string[]>([]);
+    const [images, setImages] = useState<CatalogImage[]>([]);
 
     useEffect(() => {
         const fetchPlant = async () => {

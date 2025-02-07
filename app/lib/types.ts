@@ -8,6 +8,15 @@ export interface Customer {
     notes: string;
 }
 
+export interface CatalogImage {
+    id: number;
+    plantcatalog_id: number;
+    image_path: string;
+    caption?: string;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface PlantCatalog {
     id: number;
     tag_name: string;
@@ -40,6 +49,7 @@ export interface PlantCatalog {
     flat_price: number;
     print: boolean;
     botanical_id: number;
+    images?: CatalogImage[];
 }
 
 export interface Plant {

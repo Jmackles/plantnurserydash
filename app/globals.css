@@ -135,6 +135,10 @@ body {
   .form-hint {
     @apply text-sm text-sage-600 mt-1;
   }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
 }
 
 /* Hide Next.js development overlay */
@@ -146,4 +150,20 @@ body {
   .bg-lavender-400 {
     background-color: theme('colors.lavender.400');
   }
+}
+
+/* Tooltip Animation */
+.group:hover .group-hover\:block {
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

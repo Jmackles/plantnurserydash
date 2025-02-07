@@ -2,15 +2,21 @@ import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlantCatalog } from '../../lib/types';
+import WinterizingBadge from '../badges/WinterizingBadge';
 
 interface PlantCardProps {
     plant: PlantCatalog;
 }
 
 const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
+    const fallbackImageUrl = '/plantimage.jpg';
+    const [imageUrl, setImageUrl] = useState(() => {
+        const path = plant.images?.[0]?.image_path;
+        if (!path) return fallbackImageUrl;
+        return `/api/images?path=${encodeURIComponent(path)}`;
+    });
     const [imageError, setImageError] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
-    const [imageUrl, setImageUrl] = useState(plant.image || ''); // Use the image field from PlantCatalog
     const [reloadKey, setReloadKey] = useState(Date.now()); // New state to force component reload
     const [tempPreviewUrl, setTempPreviewUrl] = useState<string | null>(null);
 
@@ -94,12 +100,12 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    {displaySrc && (
+                    {displaySrc ? (
                         <div className="relative h-56 overflow-hidden bg-sage-50">
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
                             <Image 
                                 src={displaySrc}
-                                alt={plant.tag_name || ''}
+                                alt={plant.tag_name || 'Plant Image'}
                                 fill
                                 objectFit="cover"
                                 className="transform group-hover:scale-105 transition-transform duration-500"
@@ -107,7 +113,7 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                             />
                             <div className="absolute top-2 left-2 flex flex-wrap gap-1">
                                 {plant.winterizing && (
-                                    <span className="badge">{plant.winterizing}</span>
+                                    <WinterizingBadge type={plant.winterizing} />
                                 )}
                             </div>
                             <div className="absolute bottom-2 right-2 z-20 flex gap-1">
@@ -116,8 +122,7 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                                 <span className="badge">{getGrowthRateIcon(plant.growth_rate)}</span>
                             </div>
                         </div>
-                    )}
-                    {!displaySrc && (
+                    ) : (
                         <div className="h-56 bg-sage-50 flex items-center justify-center">
                             <span className="text-sage-400">No Image Available</span>
                         </div>

@@ -53,8 +53,8 @@ h6 { font-size: 1.4rem; }
   }
 
   .btn-primary {
-    @apply px-4 py-2 bg-sage-500 text-white rounded-lg
-           hover:bg-sage-600 active:bg-sage-700
+    @apply px-4 py-2 bg-sage-700 text-white rounded-lg
+           hover:bg-sage-800 active:bg-sage-900
            transition-colors shadow-md;
     border-radius: 6.4px;
     padding: 1.1em 1.837em;
@@ -62,8 +62,8 @@ h6 { font-size: 1.4rem; }
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-lavender-400 text-white rounded-lg
-           hover:bg-lavender-500 active:bg-lavender-600
+    @apply px-4 py-2 bg-lavender-700 text-white rounded-lg
+           hover:bg-lavender-800 active:bg-lavender-900
            transition-colors shadow-md;
     border-radius: 6.4px;
     padding: 1em 1.5em;
@@ -182,6 +182,32 @@ h6 { font-size: 1.4rem; }
   .notes-expandable {
     @apply max-h-24 overflow-hidden hover:max-h-none 
            transition-[max-height] duration-300 ease-in-out;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.sage.300') theme('colors.sage.100');
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: theme('colors.sage.100');
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: theme('colors.sage.300');
+    border-radius: 3px;
+    border: 2px solid transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.sage.400');
   }
 }
 

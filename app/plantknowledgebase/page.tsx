@@ -27,7 +27,8 @@ const PlantKnowledgeBase = () => {
     const [filters, setFilters] = useState<FilterState>(initialFilterState);
     const { showToast } = useToast();
     const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(true);
+
+    const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(false); // Changed to false by default
 
     const itemsPerPage = 10;
 
@@ -141,6 +142,61 @@ const PlantKnowledgeBase = () => {
     // Remove client-side filtering since we're now doing it server-side
     const filteredPlants = plants;
 
+    const handlePageClick = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+    };
+
+    const renderPageNumbers = () => {
+        const pageNumbers = [];
+        const maxPagesToShow = 5;
+        const startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+        const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+        if (startPage > 1) {
+            pageNumbers.push(
+                <button
+                    key={1}
+                    onClick={() => handlePageClick(1)}
+                    className={`px-3 py-1 rounded-lg ${currentPage === 1 ? 'bg-sage-500 text-white' : 'bg-sage-200 text-sage-700 hover:bg-sage-300'}`}
+                >
+                    1
+                </button>
+            );
+            if (startPage > 2) {
+                pageNumbers.push(<span key="ellipsis-start" className="px-3 py-1">...</span>);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pageNumbers.push(
+                <button
+                    key={i}
+                    onClick={() => handlePageClick(i)}
+                    className={`px-3 py-1 rounded-lg ${currentPage === i ? 'bg-sage-500 text-white' : 'bg-sage-200 text-sage-700 hover:bg-sage-300'}`}
+                >
+                    {i}
+                </button>
+            );
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                pageNumbers.push(<span key="ellipsis-end" className="px-3 py-1">...</span>);
+            }
+            pageNumbers.push(
+                <button
+                    key={totalPages}
+                    onClick={() => handlePageClick(totalPages)}
+                    className={`px-3 py-1 rounded-lg ${currentPage === totalPages ? 'bg-sage-500 text-white' : 'bg-sage-200 text-sage-700 hover:bg-sage-300'}`}
+                >
+                    {totalPages}
+                </button>
+            );
+        }
+
+        return pageNumbers;
+    };
+
     return (
         <div className="flex flex-col lg:flex-row min-h-screen bg-soft-pastel-green">
             <PlantSearchFilterPanel
@@ -149,29 +205,40 @@ const PlantKnowledgeBase = () => {
                 isVisible={isFilterPanelVisible}
                 toggleVisibility={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
             />
+            
             <main className={`
-                flex-1 p-4 lg:p-8 
+                flex-1
                 transition-all duration-300 
                 min-h-screen
                 w-full
                 ${isFilterPanelVisible ? 'lg:ml-80' : ''}
             `}>
-                <div className={`
-                    sticky top-0 z-40 mb-4 
-                    ${isFilterPanelVisible ? 'lg:hidden' : ''}
-                `}>
-                    <button
-                        onClick={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
-                        className="btn-primary"
-                    >
-                        Toggle Filters
-                    </button>
+                <div className="border-b border-sage-200 bg-soft-pastel-green">
+                    <div className="max-w-[95%] mx-auto py-2 px-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setIsFilterPanelVisible(!isFilterPanelVisible)}
+                                className="text-sage-700 hover:text-sage-800 flex items-center gap-1 text-sm py-1 px-2 rounded
+                                         hover:bg-sage-100/50 transition-colors duration-200"
+                            >
+                                <span>{isFilterPanelVisible ? '←' : '☰'}</span>
+                                <span className="font-medium">
+                                    {isFilterPanelVisible ? 'Hide' : 'Filters'}
+                                </span>
+                            </button>
+                            <div className="h-4 w-px bg-sage-300 mx-2"></div>
+                            <h1 className="text-base font-medium text-sage-800">Plant Knowledge Base</h1>
+                        </div>
+                        
+                        {/* Add additional controls here if needed */}
+                    </div>
                 </div>
-                <div className="max-w-7xl mx-auto space-y-6">
+
+                <div className="max-w-[95%] mx-auto p-4 space-y-6">
                     {loading ? (
                         <div>Loading...</div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
                             {filteredPlants.map(plant => (
                                 <PlantCard key={plant.id} plant={plant} />
                             ))}
@@ -179,19 +246,35 @@ const PlantKnowledgeBase = () => {
                     )}
                     <div className="flex justify-between items-center mt-6">
                         <button
+                            onClick={() => setCurrentPage(1)}
+                            disabled={currentPage === 1}
+                            className="btn-primary"
+                        >
+                            First
+                        </button>
+                        <button
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1}
-                            className="btn-secondary"
+                            className="btn-primary"
                         >
                             Previous
                         </button>
-                        <span>Page {currentPage} of {totalPages}</span>
+                        <div className="flex gap-2">
+                            {renderPageNumbers()}
+                        </div>
                         <button
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                             disabled={currentPage === totalPages}
-                            className="btn-secondary"
+                            className="btn-primary"
                         >
                             Next
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(totalPages)}
+                            disabled={currentPage === totalPages}
+                            className="btn-primary"
+                        >
+                            Last
                         </button>
                     </div>
                 </div>

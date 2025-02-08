@@ -144,17 +144,15 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         if (!plant.notes && !plant.top_notes) return null;
         
         return (
-            <div className="mt-4 space-y-2 text-sm text-gray-600">
+            <div className="mt-2 space-y-2 text-sm text-gray-600">
                 {plant.top_notes && plant.show_top_notes && (
-                    <div className="bg-sage-50 p-3 rounded-lg">
+                    <div className="bg-sage-50 p-2 rounded-lg">
                         <p className="font-medium text-sage-800">{plant.top_notes}</p>
                     </div>
                 )}
                 {plant.notes && (
-                    <div className="p-2">
-                        <p className="line-clamp-2 hover:line-clamp-none transition-all duration-300">
-                            {plant.notes}
-                        </p>
+                    <div className="overflow-y-auto custom-scrollbar max-h-[120px] bg-gray-50/50 p-2 rounded-lg">
+                        <p className="pr-2 text-gray-700">{plant.notes}</p>
                     </div>
                 )}
             </div>
@@ -233,66 +231,73 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         <Link href={`/plantknowledgebase/${plant.id}`} key={reloadKey}>
             <div className="h-full">
                 <div 
-                    className={`group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-muted-sage-green hover:border-light-grayish-green h-full flex flex-col ${isDragging ? 'border-dashed border-4 border-sage-500' : ''}`}
+                    className={`group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-muted-sage-green hover:border-light-grayish-green h-[250px] flex flex-col ${isDragging ? 'border-dashed border-4 border-sage-500' : ''}`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
-                    {displaySrc ? (
-                        <div className="relative h-48 overflow-hidden bg-light-grayish-green">
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
-                            <Image 
-                                src={displaySrc}
-                                alt={plant.tag_name || 'Plant Image'}
-                                fill
-                                objectFit="cover"
-                                className="transform group-hover:scale-105 transition-transform duration-500"
-                                onError={() => setImageError(true)}
-                            />
-                            <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-                                {plant.winterizing && (
-                                    <Tooltip content={getWinterizingTooltip(plant.winterizing)}>
-                                        <WinterizingBadge type={plant.winterizing} />
-                                    </Tooltip>
-                                )}
-                            </div>
-                            <div className="absolute bottom-2 right-2 z-20 flex gap-1">
-                                {plant.growth_rate && getGrowthRateIcon(plant.growth_rate)}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="h-48 bg-light-grayish-green flex items-center justify-center">
-                            <span className="text-muted-sage-green">No Image Available</span>
-                        </div>
-                    )}
-                    
-                    <div className="p-4 flex-1 flex flex-col">
-                        <div className="border-b border-muted-sage-green pb-2">
-                            <h3 className="text-lg font-semibold text-sage-800 mb-1 line-clamp-2 group-hover:text-sage-600 transition-colors">
-                                {plant.tag_name}
-                            </h3>
-                            <p className="text-sm text-sage-600 italic">
-                                {plant.botanical}
-                            </p>
-                        </div>
-                        
-                        <div className="mt-3 space-y-3 flex-1">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-sage-700">{getZoneDisplay()}</span>
-                                <div className="flex items-center gap-2">
-                                    {getSunExposure()}
+                    <div className="flex flex-row h-48">
+                        {/* Image section */}
+                        <div className="w-1/3 relative">
+                            {displaySrc ? (
+                                <div className="relative h-full overflow-hidden bg-light-grayish-green">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
+                                    <Image 
+                                        src={displaySrc}
+                                        alt={plant.tag_name || 'Plant Image'}
+                                        fill
+                                        objectFit="cover"
+                                        className="transform group-hover:scale-105 transition-transform duration-500"
+                                        onError={() => setImageError(true)}
+                                    />
+                                    <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+                                        {plant.winterizing && (
+                                            <Tooltip content={getWinterizingTooltip(plant.winterizing)}>
+                                                <WinterizingBadge type={plant.winterizing} />
+                                            </Tooltip>
+                                        )}
+                                    </div>
+                                    <div className="absolute bottom-2 right-2 z-20 flex gap-1">
+                                        {plant.growth_rate && getGrowthRateIcon(plant.growth_rate)}
+                                    </div>
                                 </div>
-                            </div>
-
-                            {plant.deer_resistance && (
-                                <div className="flex items-center gap-2">
-                                    {getDeerResistantIcon()}
+                            ) : (
+                                <div className="h-full bg-light-grayish-green flex items-center justify-center">
+                                    <span className="text-muted-sage-green">No Image Available</span>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Content section */}
+                        <div className="w-2/3 p-4 flex flex-col">
+                            <div className="border-b border-muted-sage-green pb-2">
+                                <h3 className="text-lg font-semibold text-sage-800 mb-1">
+                                    {plant.tag_name}
+                                </h3>
+                                <p className="text-sm text-sage-600 italic">
+                                    {plant.botanical}
+                                </p>
+                            </div>
                             
-                            {getNativeStatus()}
-                            
-                            {formatNotes()}
+                            <div className="mt-2 space-y-2 flex-1 flex flex-col">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-sage-700">
+                                        {getZoneDisplay()}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {getSunExposure()}
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 items-center">
+                                    {plant.deer_resistance && getDeerResistantIcon()}
+                                    {getNativeStatus()}
+                                </div>
+                                
+                                <div className="flex-1 min-h-0">
+                                    {formatNotes()}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

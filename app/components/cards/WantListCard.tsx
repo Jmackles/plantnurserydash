@@ -8,18 +8,18 @@ interface WantListCardProps {
     onClick: () => void;
     onSelect?: (selected: boolean) => void;
     isSelected?: boolean;
-    onStatusChange?: (status: 'completed' | 'canceled', data: { initial: string, notes: string }) => void;
+    onStatusChange?: (status: 'completed' | 'canceled', data: { initial: string, general_notes: string }) => void;
 }
 
 const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, isSelected, onStatusChange }) => {
     const [isChangingStatus, setIsChangingStatus] = React.useState(false);
-    const [statusData, setStatusData] = React.useState({ initial: '', notes: '' });
+    const [statusData, setStatusData] = React.useState({ initial: '', general_notes: '' });
 
     const handleStatusChange = (status: 'completed' | 'canceled') => {
         if (onStatusChange && statusData.initial) {
             onStatusChange(status, statusData);
             setIsChangingStatus(false);
-            setStatusData({ initial: '', notes: '' });
+            setStatusData({ initial: '', general_notes: '' });
         }
     };
 
@@ -85,9 +85,9 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                     </Tooltip>
                 </div>
 
-                {entry.notes && (
+                {entry.general_notes && (
                     <div className="mb-3">
-                        <p className="text-sage-600 text-sm">{entry.notes}</p>
+                        <p className="text-sage-600 text-sm">{entry.general_notes}</p>
                     </div>
                 )}
 
@@ -161,8 +161,8 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                         />
                         <textarea
                             placeholder="Notes"
-                            value={statusData.notes}
-                            onChange={e => setStatusData(prev => ({ ...prev, notes: e.target.value }))}
+                            value={statusData.general_notes}
+                            onChange={e => setStatusData(prev => ({ ...prev, general_notes: e.target.value }))}
                             className="input-field"
                             rows={3}
                         />

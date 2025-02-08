@@ -78,7 +78,7 @@ export interface WantList {
     id: number;
     customer_id: number;
     initial: string;
-    notes: string;
+    general_notes: string;
     status: string;
     spoken_to: string;
     created_at_text: string;

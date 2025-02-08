@@ -15,10 +15,10 @@ export async function PUT(request: Request, context: { params: { id: string } })
     
     try {
         const body = await request.json();
-        const { status, initial, notes } = body;
-        const { id } = context.params;
+        const { status, initial, general_notes } = body;
+        const { id } = await context.params;
 
-        console.log('Processing status update:', { id, status, initial, notes });
+        console.log('Processing status update:', { id, status, initial, general_notes });
 
         if (!initial?.trim()) {
             console.error('Initials are required');
@@ -37,12 +37,12 @@ export async function PUT(request: Request, context: { params: { id: string } })
             UPDATE want_list 
             SET status = ?,
                 closed_by = ?,
-                notes = CASE 
-                    WHEN notes IS NULL OR notes = '' THEN ?
-                    ELSE notes || ' | ' || ?
+                general_notes = CASE 
+                    WHEN general_notes IS NULL OR general_notes = '' THEN ?
+                    ELSE general_notes || ' | ' || ?
                 END
             WHERE id = ?
-        `, [status, initial, notes || '', notes || '', id]);
+        `, [status, initial, general_notes || '', general_notes || '', id]);
 
         // Update associated plants
         await db.run(`

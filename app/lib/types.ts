@@ -137,3 +137,66 @@ export const parsePlantSize = (sizeStr: string): string[] => {
     
     return [SizeCategories.UNSORTED];
 };
+
+export enum SunCategory {
+  MELTING = 'Melting Sun', // Intense, direct sunlight conditions exceeding 6 hours
+  FULL = 'Full Sun',       // At least 6 hours of direct sunlight
+  PART = 'Part Shade',     // Approximately 4-6 hours of direct sunlight
+  SHADE = 'Shade'          // Less than 3 hours of direct sunlight
+}
+
+export function generateTooltip(acceptedCategories: SunCategory[]): string {
+  // Handle single-category cases first.
+  if (acceptedCategories.length === 1) {
+    const category = acceptedCategories[0];
+    switch (category) {
+      case SunCategory.MELTING:
+        return "Thrives in intense, direct sunlight for more than 6 hours daily. Ideal for very sunny, hot spots.";
+      case SunCategory.FULL:
+        return "Prefers full sun—requiring at least 6 hours of direct sunlight each day.";
+      case SunCategory.PART:
+        return "Best suited for partial sunlight, ideally receiving 4–6 hours of direct light daily.";
+      case SunCategory.SHADE:
+        return "Excels in low-light environments, thriving with less than 3 hours of direct sunlight per day.";
+    }
+  }
+
+  // For multiple categories, calculate boolean flags.
+  const hasMelting: boolean = acceptedCategories.includes(SunCategory.MELTING);
+  const hasFull: boolean    = acceptedCategories.includes(SunCategory.FULL);
+  const hasPart: boolean    = acceptedCategories.includes(SunCategory.PART);
+  const hasShade: boolean   = acceptedCategories.includes(SunCategory.SHADE);
+
+  // High-Light Specialists: Only MELTING and FULL
+  if (hasMelting && hasFull && !hasPart && !hasShade) {
+    return "Thrives in intense, direct sunlight (over 6 hours daily). Avoid shade for optimal performance.";
+  }
+
+  // High-Light with Some Flexibility: MELTING, FULL, and PART
+  if (hasMelting && hasFull && hasPart && !hasShade) {
+    return "Prefers intense sunlight (6+ hours daily) but can tolerate partial light (4–6 hours).";
+  }
+
+  // Wide Adaptability: All conditions accepted
+  if (hasMelting && hasFull && hasPart && hasShade) {
+    return "Highly adaptable—thrives under conditions ranging from intense sun (6+ hours) to deep shade (less than 3 hours).";
+  }
+
+  // Shade Specialists: Only PART and SHADE
+  if (!hasMelting && !hasFull && hasPart && hasShade) {
+    return "Best suited for low-light environments, excelling with partial sunlight (4–6 hours) and deep shade (under 3 hours).";
+  }
+
+  // Unique or Non-Contiguous Combinations (e.g., MELTING and SHADE only)
+  if (hasMelting && !hasFull && !hasPart && hasShade) {
+    return "Handles extremes: thrives in both intense sunlight (over 6 hours) and deep shade (less than 3 hours), though intermediate light may be less optimal.";
+  }
+
+  // Explicit Definition for "Full Sun & Part Shade"
+  if (!hasMelting && hasFull && hasPart && !hasShade) {
+    return "Grows well in full sun (6+ hours) but also performs in part shade (4–6 hours). Avoid deep shade for best results.";
+  }
+
+  // Fallback Removed – Every case is now explicitly defined.
+  return "This tooltip shouldn't appear. Check logic.";
+}

@@ -166,6 +166,23 @@ h6 { font-size: 1.4rem; }
   .toast-error {
     @apply bg-red-500 text-white;
   }
+
+  .badge {
+    @apply inline-flex items-center justify-center px-2 py-1 
+           text-xs font-medium rounded-full
+           transition-colors duration-200;
+  }
+
+  .plant-card {
+    @apply bg-white rounded-2xl shadow-md hover:shadow-xl 
+           transition-all duration-300 overflow-hidden
+           border border-muted-sage-green hover:border-sage-400;
+  }
+
+  .notes-expandable {
+    @apply max-h-24 overflow-hidden hover:max-h-none 
+           transition-[max-height] duration-300 ease-in-out;
+  }
 }
 
 /* Keyboard focus styles */

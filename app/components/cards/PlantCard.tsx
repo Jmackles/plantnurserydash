@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { PlantCatalog, SunCategory, generateTooltip } from '../../lib/types';
+import { getWinterizingTooltip, getDeerResistanceTooltip, getGrowthRateTooltip } from '../../lib/tooltips';
+import Tooltip from '../shared/Tooltip';
 import WinterizingBadge from '../badges/WinterizingBadge';
 import SunExposureIcon from '../icons/SunExposureIcon';
 
@@ -84,45 +86,79 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
     };
 
     const getGrowthRateIcon = (rate: string = '') => {
-        switch(rate.toLowerCase()) {
-            case 'fast': return '🚀';
-            case 'moderate': return '⚡';
-            case 'slow': return '🐌';
-            default: return '🌱';
-        }
-    };
+        // Only return the icon if there's a valid growth rate
+        if (!rate) return null;
+        
+        const icon = {
+            'fast': '🚀',
+            'moderate': '⚡',
+            'slow': '🐌',
+            'default': '🌱'
+        }[rate.toLowerCase()];
 
-    const getNativeIcon = () => plant.car_native ? '🌿' : '';
+        // Only render if we have a valid icon
+        return icon ? (
+            <Tooltip content={getGrowthRateTooltip(rate)}>
+                <span className="badge">{icon}</span>
+            </Tooltip>
+        ) : null;
+    };
 
     const getDeerResistantIcon = () => {
         if (!plant.deer_resistance) return null;
 
         const resistanceLevels = {
-            none: { text: 'NONE', color: '#FF6B6B' }, // red
-            fair: { text: 'FAIR', color: '#FFA726' }, // orange
-            good: { text: 'GOOD', color: '#FFEB3B' }, // yellow
-            'very good': { text: 'VERY GOOD', color: '#66BB6A' } // green
+            none: { text: 'NONE', color: 'black' },
+            fair: { text: 'FAIR', color: 'black' },
+            good: { text: 'GOOD', color: 'black' },
+            'very good': { text: 'VERY GOOD', color: 'black' }
         };
 
         const level = resistanceLevels[plant.deer_resistance.toLowerCase()];
         if (!level) return null;
 
         return (
-            <div className="relative">
-                <Image src={deerIconUrl} alt="Deer Resistance" width={32} height={32} />
-                <span
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{ color: level.color }}
-                >
-                    {level.text}
-                </span>
-            </div>
+            <Tooltip content={getDeerResistanceTooltip(plant.deer_resistance)}>
+                <div className="flex items-center gap-2">
+                    <Image 
+                        src={deerIconUrl} 
+                        alt="Deer Resistance" 
+                        width={24} 
+                        height={24}
+                    />
+                    <span className="text-xs text-black font-medium">
+                        {level.text}
+                    </span>
+                </div>
+            </Tooltip>
         );
     };
 
-    const formatPrice = (price: number | undefined) => {
-        if (!price) return 'N/A';
-        return `$${price.toFixed(2)}`;
+    const getZoneDisplay = () => {
+        if (!plant.zone_min || !plant.zone_max) return 'Zones: N/A';
+        if (plant.zone_min === plant.zone_max) return `Zone ${plant.zone_min}`;
+        return `Zones ${plant.zone_min}-${plant.zone_max}`;
+    };
+
+    const formatNotes = () => {
+        if (!plant.notes && !plant.top_notes) return null;
+        
+        return (
+            <div className="mt-4 space-y-2 text-sm text-gray-600">
+                {plant.top_notes && plant.show_top_notes && (
+                    <div className="bg-sage-50 p-3 rounded-lg">
+                        <p className="font-medium text-sage-800">{plant.top_notes}</p>
+                    </div>
+                )}
+                {plant.notes && (
+                    <div className="p-2">
+                        <p className="line-clamp-2 hover:line-clamp-none transition-all duration-300">
+                            {plant.notes}
+                        </p>
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -168,19 +204,42 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
         }
     }, [plant]);
 
+    const getNativeStatus = () => {
+        if (!plant.nativity && !plant.car_native) return null;
+
+        return (
+            <div className="flex items-center gap-2">
+                {plant.car_native && (
+                    <Tooltip content="Carolina Native Plant">
+                        <span className="badge bg-sage-100 text-sage-800 px-2 py-1 rounded-full text-xs">
+                            CAR Native 🌿
+                        </span>
+                    </Tooltip>
+                )}
+                {plant.nativity && (
+                    <Tooltip content={`Native to: ${plant.nativity}`}>
+                        <span className="badge bg-mint-100 text-mint-800 px-2 py-1 rounded-full text-xs">
+                            {plant.nativity} 🌱
+                        </span>
+                    </Tooltip>
+                )}
+            </div>
+        );
+    };
+
     const displaySrc = (imageError && tempPreviewUrl) ? tempPreviewUrl : imageUrl;
 
     return (
         <Link href={`/plantknowledgebase/${plant.id}`} key={reloadKey}>
-            <div>
+            <div className="h-full">
                 <div 
-                    className={`group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-muted-sage-green hover:border-light-grayish-green ${isDragging ? 'border-dashed border-4 border-sage-500' : ''}`}
+                    className={`group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-muted-sage-green hover:border-light-grayish-green h-full flex flex-col ${isDragging ? 'border-dashed border-4 border-sage-500' : ''}`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                 >
                     {displaySrc ? (
-                        <div className="relative h-56 overflow-hidden bg-light-grayish-green">
+                        <div className="relative h-48 overflow-hidden bg-light-grayish-green">
                             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent z-10" />
                             <Image 
                                 src={displaySrc}
@@ -192,52 +251,48 @@ const PlantCard: React.FC<PlantCardProps> = ({ plant }) => {
                             />
                             <div className="absolute top-2 left-2 flex flex-wrap gap-1">
                                 {plant.winterizing && (
-                                    <WinterizingBadge type={plant.winterizing} />
+                                    <Tooltip content={getWinterizingTooltip(plant.winterizing)}>
+                                        <WinterizingBadge type={plant.winterizing} />
+                                    </Tooltip>
                                 )}
                             </div>
                             <div className="absolute bottom-2 right-2 z-20 flex gap-1">
-                                {getNativeIcon() && <span className="badge">{getNativeIcon()}</span>}
-                                {getDeerResistantIcon() && <span className="badge">{getDeerResistantIcon()}</span>}
-                                <span className="badge">{getGrowthRateIcon(plant.growth_rate)}</span>
+                                {plant.growth_rate && getGrowthRateIcon(plant.growth_rate)}
                             </div>
                         </div>
                     ) : (
-                        <div className="h-56 bg-light-grayish-green flex items-center justify-center">
+                        <div className="h-48 bg-light-grayish-green flex items-center justify-center">
                             <span className="text-muted-sage-green">No Image Available</span>
                         </div>
                     )}
-                    <div className="p-5 space-y-4 select-text">
-                        <div className="border-b border-muted-sage-green pb-3">
-                            <h3 className="text-xl font-semibold text-muted-sage-green mb-1 line-clamp-2">
+                    
+                    <div className="p-4 flex-1 flex flex-col">
+                        <div className="border-b border-muted-sage-green pb-2">
+                            <h3 className="text-lg font-semibold text-sage-800 mb-1 line-clamp-2 group-hover:text-sage-600 transition-colors">
                                 {plant.tag_name}
                             </h3>
-                            <p className="text-sm text-muted-sage-green italic">
+                            <p className="text-sm text-sage-600 italic">
                                 {plant.botanical}
                             </p>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                                <span className="font-semibold">Price:</span> {formatPrice(plant.price)}
+                        
+                        <div className="mt-3 space-y-3 flex-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-sage-700">{getZoneDisplay()}</span>
+                                <div className="flex items-center gap-2">
+                                    {getSunExposure()}
+                                </div>
                             </div>
-                            <div>
-                                <span className="font-semibold">Size:</span> {plant.size || 'N/A'}
-                            </div>
-                            <div className="col-span-2 flex items-center justify-between">
-                                <span className="font-semibold">Sun Exposure:</span> {getSunExposure()}
-                            </div>
-                            {plant.mature_size && (
-                                <div className="col-span-2">
-                                    <span className="font-semibold">Mature Size:</span> {plant.mature_size}
+
+                            {plant.deer_resistance && (
+                                <div className="flex items-center gap-2">
+                                    {getDeerResistantIcon()}
                                 </div>
                             )}
-                            {plant.notes && (
-                                <div className="col-span-2">
-                                    <span className="font-semibold">Notes:</span> {plant.notes}
-                                </div>
-                            )}
-                            <div className="col-span-2 flex justify-between items-center pt-2 border-t border-muted-sage-green">
-                                <span className="font-semibold">Warranty:</span> {plant.no_warranty ? 'No' : 'Yes'}
-                            </div>
+                            
+                            {getNativeStatus()}
+                            
+                            {formatNotes()}
                         </div>
                     </div>
                 </div>

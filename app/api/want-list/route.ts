@@ -1,47 +1,50 @@
-import { NextResponse } from 'next/server'
-import sqlite3 from 'sqlite3'
-import { open } from 'sqlite'
+import { NextResponse } from 'next/server';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
 
 const openDb = async () => {
   return open({
     filename: './app/database/database.sqlite',
     driver: sqlite3.Database
-  })
-}
+  });
+};
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const customerId = searchParams.get('customerId')
-  const db = await openDb()
+  const db = await openDb();
+  
   try {
-    // First get want list entries
-    const wantListQuery = customerId 
-      ? 'SELECT * FROM want_list WHERE customer_id = ?'
-      : 'SELECT * FROM want_list';
-    const params = customerId ? [customerId] : [];
-    const wantListEntries = await db.all(wantListQuery, params);
+    // Get sorted entries using consistent sorting logic
+    const entries = await db.all(`
+      SELECT w.*, 
+        CASE w.status
+          WHEN 'pending' THEN 0
+          WHEN 'completed' THEN 1
+          WHEN 'canceled' THEN 2
+          ELSE 3
+        END as sort_order
+      FROM want_list w
+      ORDER BY sort_order ASC, created_at_text DESC
+    `);
 
-    // Then get associated plants for each entry
+    // Get plants for all entries
     const enrichedEntries = await Promise.all(
-      wantListEntries.map(async (entry) => {
-        const plants = await db.all(`
-          SELECT p.*, pc.tag_name, pc.botanical
-          FROM plants p
-          LEFT JOIN PlantCatalog pc ON p.plant_catalog_id = pc.id
-          WHERE p.want_list_entry_id = ?
-        `, [entry.id]);
-        
-        return {
-          ...entry,
-          plants: plants
-        };
+      entries.map(async (entry) => {
+        const plants = await db.all(
+          'SELECT * FROM plants WHERE want_list_entry_id = ?', 
+          [entry.id]
+        );
+        return { ...entry, plants };
       })
     );
 
-    return NextResponse.json(enrichedEntries);
+    return NextResponse.json({ entries: enrichedEntries });
+
   } catch (error) {
-    console.error('Error fetching want list entries:', error);
-    return NextResponse.json({ error: 'Failed to fetch want list entries' }, { status: 500 });
+    console.error('Error fetching entries:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch entries' }, 
+      { status: 500 }
+    );
   }
 }
 

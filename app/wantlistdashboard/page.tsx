@@ -45,19 +45,22 @@ const WantListDashboard = () => {
 
     const fetchEntries = async () => {
         try {
-            const entries = await fetchWantListEntries();
+            const response = await fetchWantListEntries();
+            // Check if response has entries property
+            const entries = response.entries || response;
+            
             if (Array.isArray(entries)) {
                 const sortedEntries = entries.sort((a, b) => {
-                    const statusOrder = { pending: 1, completed: 2, canceled: 3 };
+                    const statusOrder = { pending: 0, completed: 1, canceled: 2 };
                     return statusOrder[a.status] - statusOrder[b.status];
                 });
                 setWantListEntries(sortedEntries);
             } else {
-                console.warn('Unexpected data format:', entries);
+                console.warn('Unexpected data format:', response);
                 setWantListEntries([]);
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error fetching entries:', error);
             setWantListEntries([]);
         }
     };

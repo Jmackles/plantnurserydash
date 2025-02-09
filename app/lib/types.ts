@@ -200,3 +200,16 @@ export function generateTooltip(acceptedCategories: SunCategory[]): string {
   // Fallback Removed – Every case is now explicitly defined.
   return "This tooltip shouldn't appear. Check logic.";
 }
+
+export const getStatusSortOrder = (status: string): number => {
+    switch (status?.toLowerCase()) {
+        case 'pending':
+            return 0;
+        case 'completed':
+            return 1;
+        case 'canceled':
+            return 2;
+        default:
+            return 999; // Unknown statuses go last
+    }
+};

@@ -28,7 +28,7 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
             case 'pending':
                 return 'bg-yellow-100 text-yellow-800';
             case 'completed':
-                return 'bg-green-100 text-green-800';
+                return 'bg-green-500 text-white'; // Brighter, more visible status badge
             case 'canceled':
                 return 'bg-gray-300 text-gray-800'; // Darker gray for canceled
             default:
@@ -39,11 +39,11 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
     const getCardStyle = (status: string) => {
         switch (status) {
             case 'completed':
-                return 'bg-green-50'; // Light green background for completed
+                return 'bg-green-50 border-l-4 border-green-500 ring-1 ring-green-200'; // Added ring for more emphasis
             case 'canceled':
-                return 'bg-gray-200'; // Darker gray background for canceled
+                return 'bg-gray-100 border-l-4 border-gray-500 opacity-75'; // Gray left border, lighter opacity
             default:
-                return '';
+                return 'border-l-4 border-transparent'; // Default with transparent border
         }
     };
 

@@ -87,17 +87,6 @@ const CustomerDetails = () => {
                             />
                         </div>
                         <div className="mb-4">
-                            <label className="form-label">Status:</label>
-                            <select
-                                value={editData?.is_active ? 'Active' : 'Inactive'}
-                                onChange={(e) => handleEditChange('is_active', e.target.value === 'Active')}
-                                className="input-field"
-                            >
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
-                        </div>
-                        <div className="mb-4">
                             <label className="form-label">Notes:</label>
                             <textarea
                                 value={editData?.notes || ''}
@@ -120,7 +109,6 @@ const CustomerDetails = () => {
                         <p><strong>Last Name:</strong> {customer.last_name}</p>
                         <p><strong>Phone:</strong> {customer.phone}</p>
                         <p><strong>Email:</strong> {customer.email}</p>
-                        <p><strong>Status:</strong> {customer.is_active ? 'Active' : 'Inactive'}</p>
                         <p><strong>Notes:</strong> {customer.notes}</p>
                         <button className="btn-primary mt-4" onClick={() => setIsEditing(true)}>
                             Edit

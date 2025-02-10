@@ -12,6 +12,7 @@ import 'react-toastify/dist/ReactToastify.css';
 const WantListDashboard = () => {
     const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [searchQuery, setSearchQuery] = useState(''); // Add this line
     const [selectedEntry, setSelectedEntry] = useState<WantList | null>(null);
     const [editData, setEditData] = useState<WantList | null>(null);
     const [isAdding, setIsAdding] = useState(false);
@@ -20,6 +21,7 @@ const WantListDashboard = () => {
         id: 0,
         customer_id: 0,
         initial: '',
+        general_notes: '', // Added general_notes field
         notes: '',
         status: 'pending',
         spoken_to: '',
@@ -33,12 +35,10 @@ const WantListDashboard = () => {
         last_name: '',
         phone: '',
         email: '',
-        is_active: true,
         notes: ''
     });
     const [selectedEntries, setSelectedEntries] = useState<number[]>([]);
     const [bulkCloseData, setBulkCloseData] = useState({ initial: '', notes: '' });
-    const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
@@ -46,14 +46,10 @@ const WantListDashboard = () => {
     const fetchEntries = async () => {
         try {
             const response = await fetchWantListEntries();
-            // Check if response has entries property
             const entries = response.entries || response;
             
             if (Array.isArray(entries)) {
-                const sortedEntries = entries.sort((a, b) => {
-                    const statusOrder = { pending: 0, completed: 1, canceled: 2 };
-                    return statusOrder[a.status] - statusOrder[b.status];
-                });
+                const sortedEntries = entries.sort((a, b) => new Date(b.created_at_text).getTime() - new Date(a.created_at_text).getTime());
                 setWantListEntries(sortedEntries);
             } else {
                 console.warn('Unexpected data format:', response);
@@ -74,18 +70,44 @@ const WantListDashboard = () => {
         }
     };
 
+    // Load saved state from localStorage on component mount
     useEffect(() => {
+        const savedState = localStorage.getItem('wantListState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            setCurrentPage(state.currentPage || 1);
+            setSearchQuery(state.searchQuery || '');
+            setFilterStatus(state.filterStatus || '');
+            window.scrollTo(0, state.scrollPosition || 0);
+        }
+        
         fetchEntries();
         fetchCustomerList();
+    }, []);
 
-        const savedPage = localStorage.getItem('currentPage');
-        const savedScrollPosition = localStorage.getItem('scrollPosition');
-        if (savedPage) {
-            setCurrentPage(Number(savedPage));
-        }
-        if (savedScrollPosition) {
-            window.scrollTo(0, Number(savedScrollPosition));
-        }
+    // Save state to localStorage whenever relevant states change
+    useEffect(() => {
+        const state = {
+            currentPage,
+            searchQuery,
+            filterStatus,
+            scrollPosition: window.scrollY
+        };
+        localStorage.setItem('wantListState', JSON.stringify(state));
+    }, [currentPage, searchQuery, filterStatus]);
+
+    // Add event listener for scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            const state = JSON.parse(localStorage.getItem('wantListState') || '{}');
+            localStorage.setItem('wantListState', JSON.stringify({
+                ...state,
+                scrollPosition: window.scrollY
+            }));
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
     useEffect(() => {
@@ -97,13 +119,6 @@ const WantListDashboard = () => {
             setEditData(selectedEntry);
         }
     }, [selectedEntry]);
-
-    useEffect(() => {
-        return () => {
-            localStorage.setItem('currentPage', String(currentPage));
-            localStorage.setItem('scrollPosition', String(window.scrollY));
-        };
-    }, [currentPage]);
 
     const closeModal = () => {
         setSelectedEntry(null);
@@ -186,25 +201,58 @@ const WantListDashboard = () => {
         setNewCustomerData((prev) => ({ ...prev, [field]: value }));
     };
 
-    const saveNewEntry = async () => {
+    const saveNewEntry = async (customer: Customer, wantListEntry?: WantList) => {
         try {
-            let customerId = newEntryData.customer_id;
-            if (useNewCustomer) {
-                const newCustomer = await addCustomer(newCustomerData);
-                customerId = newCustomer.id;
+            if (!wantListEntry || !wantListEntry.initial) {
+                toast.error('Missing required information');
+                return;
             }
-            await addWantListEntry({
-                ...newEntryData,
-                customer_id: customerId,
+
+            let customerToUse;
+
+            try {
+                const response = await addCustomer(customer);
+                customerToUse = response.isExisting ? response.customer : response.customer;
+                console.log('Customer response:', response);
+                console.log('Customer to use:', customerToUse);
+            } catch (error: any) {
+                console.error('Customer creation error:', error);
+                toast.error('Failed to create customer');
+                return;
+            }
+
+            if (!customerToUse?.id) {
+                console.error('No valid customer ID');
+                toast.error('Failed to get valid customer ID');
+                return;
+            }
+
+            const entryToSave = {
+                customer_id: customerToUse.id,  // Using the ID directly
+                initial: wantListEntry.initial,
+                general_notes: wantListEntry.general_notes || '',
+                status: 'pending',
                 created_at_text: new Date().toISOString(),
-            });
-            console.log('New want list entry added successfully!');
+                plants: wantListEntry.plants
+                    .filter(plant => plant.name && plant.quantity > 0)
+                    .map(plant => ({
+                        name: plant.name,
+                        size: plant.size || '',
+                        quantity: plant.quantity,
+                        status: 'pending'
+                    }))
+            };
+
+            console.log('Saving want list entry:', entryToSave);
+            const savedEntry = await addWantListEntry(entryToSave);
+            console.log('Saved want list entry:', savedEntry);
+            
             await fetchEntries();
             closeModal();
-            toast.success('New entry added successfully!');
-        } catch (error) {
-            console.error('Error adding new entry:', error);
-            toast.error('Failed to add new entry.');
+            toast.success('Want list entry added successfully!');
+        } catch (error: any) {
+            console.error('Error in saveNewEntry:', error);
+            toast.error('Failed to add entry: ' + (error.message || 'Unknown error'));
         }
     };
 
@@ -318,7 +366,7 @@ const WantListDashboard = () => {
 
     const filteredEntries = wantListEntries.filter(entry => {
         const matchesSearchQuery = entry.initial.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            entry.notes.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (entry.general_notes || '').toLowerCase().includes(searchQuery.toLowerCase()) || // Changed from notes to general_notes
             customers.find(c => c.id === entry.customer_id)?.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             customers.find(c => c.id === entry.customer_id)?.last_name.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -381,22 +429,26 @@ const WantListDashboard = () => {
                         <p className="text-sage-600">No want list entries found.</p>
                     </div>
                 ) : (
-                    paginatedEntries.map(entry => (
-                        <WantListCard 
-                            key={entry.id} 
-                            entry={entry} 
-                            onClick={() => setSelectedEntry(entry)}
-                            onStatusChange={(status, data) => handleStatusChange(entry.id, status, data)}
-                            onSelect={(selected) => {
-                                if (selected) {
-                                    setSelectedEntries(prev => [...prev, entry.id]);
-                                } else {
-                                    setSelectedEntries(prev => prev.filter(id => id !== entry.id));
-                                }
-                            }}
-                            isSelected={selectedEntries.includes(entry.id)}
-                        />
-                    ))
+                    paginatedEntries.map(entry => {
+                        const customer = customers.find(c => c.id === entry.customer_id);
+                        return (
+                            <WantListCard 
+                                key={entry.id} 
+                                entry={entry} 
+                                customer={customer}
+                                onClick={() => setSelectedEntry(entry)}
+                                onStatusChange={(status, data) => handleStatusChange(entry.id, status, data)}
+                                onSelect={(selected) => {
+                                    if (selected) {
+                                        setSelectedEntries(prev => [...prev, entry.id]);
+                                    } else {
+                                        setSelectedEntries(prev => prev.filter(id => id !== entry.id));
+                                    }
+                                }}
+                                isSelected={selectedEntries.includes(entry.id)}
+                            />
+                        );
+                    })
                 )}
             </div>
 

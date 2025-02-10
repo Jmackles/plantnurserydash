@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, WantList, Plant } from '../../lib/types';
+import { addCustomer } from '../../lib/api';
 
 interface CustomerInteractionModalProps {
     customer: Customer | null;
@@ -28,8 +29,6 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
     });
     const [closeInitial, setCloseInitial] = useState('');
     const [closeNotes, setCloseNotes] = useState('');
-    const [plantCatalog, setPlantCatalog] = useState<Plant[]>([]);
-    const [suggestedPlants, setSuggestedPlants] = useState<Plant[]>([]);
 
     useEffect(() => {
         console.log('CustomerInteractionModal mounted with customer:', customer);
@@ -47,20 +46,6 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                 .catch(error => console.error('Error fetching want list entries:', error));
         }
     }, [customer]);
-
-    useEffect(() => {
-        fetch('/api/knowledgebase')
-            .then(res => {
-                if (!res.ok) {
-                    throw new Error('Failed to fetch plant catalog');
-                }
-                return res.json();
-            })
-            .then((plants: Plant[]) => {
-                setPlantCatalog(plants.data); // Adjust based on the structure of the response
-            })
-            .catch(error => console.error('Error fetching plant catalog:', error));
-    }, []);
 
     useEffect(() => {
         if (wantListEntry && setEditData && !editData) {
@@ -90,7 +75,6 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                 last_name: '',
                 phone: '',
                 email: '',
-                is_active: true,
                 notes: ''
             });            
         }
@@ -135,30 +119,49 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
     };
 
     const handleSave = async (): Promise<void> => {
-        if (editedCustomer) {
-            try {
-                console.log('Saving with data:', {
-                    customer: editedCustomer,
-                    wantList: includeWantList ? wantListData : undefined,
-                    wantListEntry
-                });
-
-                await onSave(
-                    editedCustomer,
-                    wantListEntry ? {
-                        ...wantListData,
-                        id: wantListEntry.id,
-                        customer_id: wantListEntry.customer_id,
-                        status: wantListEntry.status,
-                        spoken_to: wantListEntry.spoken_to || '',
-                        created_at_text: wantListEntry.created_at_text || '',
-                        closed_by: wantListEntry.closed_by || ''
-                    } : undefined
-                );
-            } catch (error) {
-                console.error('Error in handleSave:', error);
-                alert('Failed to save changes');
+        if (!editedCustomer) {
+            console.error('No customer data');
+            return;
+        }
+    
+        try {
+            if (includeWantList && !wantListData.initial) {
+                alert('Please enter your initials');
+                return;
             }
+    
+            if (includeWantList) {
+                const wantListEntryData: WantList = {
+                    id: 0,
+                    customer_id: editedCustomer.id,
+                    initial: wantListData.initial,
+                    general_notes: wantListData.notes,
+                    status: 'pending',
+                    spoken_to: '',
+                    created_at_text: new Date().toISOString(),
+                    closed_by: '',
+                    plants: wantListData.plants
+                        .filter(plant => plant.name && plant.quantity > 0)
+                        .map(plant => ({
+                            id: 0,
+                            want_list_entry_id: 0,
+                            name: plant.name,
+                            size: plant.size || '',
+                            quantity: plant.quantity,
+                            status: 'pending',
+                            plant_catalog_id: plant.plant_catalog_id || 0,
+                            requested_at: '',
+                            fulfilled_at: ''
+                        }))
+                };
+                
+                await onSave(editedCustomer, wantListEntryData);
+            } else {
+                await onSave(editedCustomer);
+            }
+        } catch (error) {
+            console.error('Error in handleSave:', error);
+            alert('Failed to save changes');
         }
     };
 
@@ -201,21 +204,16 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
         }
     };
 
-    const suggestPlants = (plantName: string) => {
-        const suggestions = plantCatalog.filter(plant => plant.name && plant.name.toLowerCase().includes(plantName.toLowerCase()));
-        setSuggestedPlants(suggestions);
-    };
-
     const wantListForm = (
         <div className="border-t mt-4 pt-4">
             <div className="flex items-center mb-4">
+                <label className="block text-sm font-medium text-gray-700 mr-2">Include Want List</label>
                 <input
                     type="checkbox"
                     checked={includeWantList}
                     onChange={(e) => setIncludeWantList(e.target.checked)}
-                    className="mr-2"
+                    className="toggle-checkbox"
                 />
-                <label>Include Want List</label>
             </div>
 
             {includeWantList && (
@@ -252,10 +250,7 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                                     type="text"
                                     placeholder="Name"
                                     value={plant.name}
-                                    onChange={(e) => {
-                                        handlePlantChange(index, 'name', e.target.value);
-                                        suggestPlants(e.target.value);
-                                    }}
+                                    onChange={(e) => handlePlantChange(index, 'name', e.target.value)}
                                     className="input-field"
                                 />
                                 <input
@@ -272,18 +267,6 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                                     onChange={(e) => handlePlantChange(index, 'quantity', parseInt(e.target.value))}
                                     className="input-field"
                                 />
-                                {suggestedPlants.length > 0 && (
-                                    <div className="col-span-3 mt-2">
-                                        <label className="block text-sm font-medium text-gray-700">Suggested Plants</label>
-                                        <ul className="list-disc list-inside">
-                                            {suggestedPlants.map((suggestedPlant, i) => (
-                                                <li key={i} className="text-sm text-gray-600">
-                                                    {suggestedPlant.name}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>
@@ -335,20 +318,6 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                         onChange={handleChange}
                         className="input-field"
                     />
-                </div>
-                <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700">Status</label>
-                    <select
-                        name="is_active"
-                        value={editedCustomer?.is_active ? 'active' : 'inactive'}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                            setEditedCustomer(prev => prev ? { ...prev, is_active: e.target.value === 'active' } : null);
-                        }}
-                        className="input-field"
-                    >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
                 </div>
                 <div className="mb-4">
                     <label className="form-label">Notes:</label>

@@ -4,7 +4,6 @@ export interface Customer {
     last_name: string;
     phone: string;
     email: string;
-    is_active: boolean;
     notes: string;
 }
 
@@ -213,3 +212,18 @@ export const getStatusSortOrder = (status: string): number => {
             return 999; // Unknown statuses go last
     }
 };
+
+export interface ActivityItem {
+    type: string;
+    customer: string;
+    time: string;
+    action: string;
+    customer_id: number;
+}
+
+export interface DashboardMetrics {
+    totalCustomers: number;
+    activeWantlists: number;
+    totalPlants: number;
+    averagePlantsPerWantList: number;
+}

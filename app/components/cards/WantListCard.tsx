@@ -1,17 +1,18 @@
 'use client';
 import React from 'react';
-import { WantList } from '../../lib/types';
+import { WantList, Customer } from '../../lib/types';
 import { Tooltip } from 'react-tooltip';
 
 interface WantListCardProps {
     entry: WantList;
+    customer: Customer | null;
     onClick: () => void;
     onSelect?: (selected: boolean) => void;
     isSelected?: boolean;
     onStatusChange?: (status: 'completed' | 'canceled', data: { initial: string, general_notes: string }) => void;
 }
 
-const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, isSelected, onStatusChange }) => {
+const WantListCard: React.FC<WantListCardProps> = ({ entry, customer, onClick, onSelect, isSelected, onStatusChange }) => {
     const [isChangingStatus, setIsChangingStatus] = React.useState(false);
     const [statusData, setStatusData] = React.useState({ initial: '', general_notes: '' });
 
@@ -28,9 +29,9 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
             case 'pending':
                 return 'bg-yellow-100 text-yellow-800';
             case 'completed':
-                return 'bg-green-500 text-white'; // Brighter, more visible status badge
+                return 'bg-green-500 text-white';
             case 'canceled':
-                return 'bg-gray-300 text-gray-800'; // Darker gray for canceled
+                return 'bg-gray-300 text-gray-800';
             default:
                 return 'bg-gray-100 text-gray-800';
         }
@@ -39,19 +40,21 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
     const getCardStyle = (status: string) => {
         switch (status) {
             case 'completed':
-                return 'bg-green-50 border-l-4 border-green-500 ring-1 ring-green-200'; // Added ring for more emphasis
+                return 'bg-green-50 border-l-4 border-green-500 ring-1 ring-green-200';
             case 'canceled':
-                return 'bg-gray-100 border-l-4 border-gray-500 opacity-75'; // Gray left border, lighter opacity
+                return 'bg-gray-100 border-l-4 border-gray-500 opacity-75';
             default:
-                return 'border-l-4 border-transparent'; // Default with transparent border
+                return 'border-l-4 border-transparent';
         }
     };
 
-    const status = entry.status || 'pending'; // Default to 'pending' if status is undefined
+    const status = entry.status || 'pending';
 
     return (
         <div className={`relative bg-white rounded-lg shadow-md transition-all duration-300 p-4 
             ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-lg'} ${getCardStyle(status)}`}
+            onMouseEnter={() => setIsChangingStatus(true)}
+            onMouseLeave={() => setIsChangingStatus(false)}
         >
             <div className="absolute top-2 left-2">
                 <input
@@ -67,11 +70,16 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                 <div className="flex justify-between items-start mb-3">
                     <div>
                         <h3 className="text-lg font-semibold text-sage-800">
-                            Ticket #{entry.id}
+                            Ticket #{entry.id} - {customer?.first_name} {customer?.last_name}
                         </h3>
                         <p className="text-sage-600">
                             Initial: {entry.initial}
                         </p>
+                        {customer && (
+                            <p className="text-sage-600">
+                                Phone: {customer.phone} {customer.email && `| Email: ${customer.email}`}
+                            </p>
+                        )}
                     </div>
                     <span 
                         className={`px-2 py-1 rounded-full text-sm ${getStatusColor(status)}`}
@@ -100,7 +108,6 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                                     <div className="flex justify-between">
                                         <span className="font-medium">
                                             {plant.name}
-                                            {plant.tag_name && ` (${plant.tag_name})`}
                                         </span>
                                         <span className="text-sage-600">
                                             Qty: {plant.quantity}
@@ -115,13 +122,13 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                     </div>
                 )}
 
-                {entry.status === 'pending' && (
+                {entry.status === 'pending' && isChangingStatus && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
                         <div className="flex gap-2">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setIsChangingStatus(true);
+                                    handleStatusChange('completed');
                                 }}
                                 className="btn-primary bg-green-600 hover:bg-green-700 flex-1"
                             >
@@ -130,7 +137,7 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setIsChangingStatus(true);
+                                    handleStatusChange('canceled');
                                 }}
                                 className="btn-primary bg-red-600 hover:bg-red-700 flex-1"
                             >
@@ -140,55 +147,6 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, onClick, onSelect, i
                     </div>
                 )}
             </div>
-
-            {/* Status Change Dialog */}
-            {isChangingStatus && (
-                <div 
-                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-                    onClick={() => setIsChangingStatus(false)}
-                >
-                    <div 
-                        className="bg-white p-4 rounded-lg shadow-xl max-w-md w-full mx-4"
-                        onClick={e => e.stopPropagation()}
-                    >
-                        <h3 className="text-lg font-semibold mb-4">Update Status</h3>
-                        <input
-                            type="text"
-                            placeholder="Your Initials"
-                            value={statusData.initial}
-                            onChange={e => setStatusData(prev => ({ ...prev, initial: e.target.value }))}
-                            className="input-field"
-                        />
-                        <textarea
-                            placeholder="Notes"
-                            value={statusData.general_notes}
-                            onChange={e => setStatusData(prev => ({ ...prev, general_notes: e.target.value }))}
-                            className="input-field"
-                            rows={3}
-                        />
-                        <div className="flex justify-end gap-2 mt-4">
-                            <button
-                                onClick={() => setIsChangingStatus(false)}
-                                className="btn-secondary"
-                            >
-                                Close Dialog
-                            </button>
-                            <button
-                                onClick={() => handleStatusChange('completed')}
-                                className="btn-primary bg-green-600"
-                            >
-                                Mark Complete
-                            </button>
-                            <button
-                                onClick={() => handleStatusChange('canceled')}
-                                className="btn-primary bg-red-600"
-                            >
-                                Mark Canceled
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

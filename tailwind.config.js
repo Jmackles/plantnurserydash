@@ -72,6 +72,9 @@ const config = {
           '100%': { opacity: '1' },
         },
       },
+      scale: {
+        '102': '1.02'
+      }
     },
   },
   darkMode: 'class',

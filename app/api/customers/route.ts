@@ -23,22 +23,52 @@ export async function GET() {
 
 // POST: add a new customer
 export async function POST(request: Request) {
-  const db = await openDb()
-  const body = await request.json()
-  const { first_name, last_name, phone, email, is_active, notes } = body
+  const db = await openDb();
+  
   try {
-    const result = await db.run(
-      'INSERT INTO customers (first_name, last_name, phone, email, is_active, notes) VALUES (?, ?, ?, ?, ?, ?)',
-      [first_name, last_name, phone, email, is_active, notes]
-    )
-    const newCustomer = await db.get('SELECT * FROM customers WHERE id = ?', [result.lastID])
-    return NextResponse.json(newCustomer, { status: 201 })
-  } catch (error: any) {
-    console.error('Error adding customer:', error)
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return NextResponse.json({ error: 'A customer with this phone or email already exists' }, { status: 400 })
+    const body = await request.json();
+    const { first_name, last_name, phone, email, notes } = body;
+
+    // Convert empty strings to null for UNIQUE constraint
+    const phoneValue = phone?.trim() || null;
+    const emailValue = email?.trim() || null;
+
+    // First check if customer exists
+    const existingCustomer = await db.get(
+      'SELECT * FROM customers WHERE (phone = ? AND phone IS NOT NULL) OR (email = ? AND email IS NOT NULL)',
+      [phoneValue, emailValue]
+    );
+
+    if (existingCustomer) {
+      console.log('Found existing customer:', existingCustomer);
+      return NextResponse.json({ 
+        error: 'A customer with this phone number or email already exists',
+        existingCustomer,
+        status: 409
+      }, { 
+        status: 409 
+      });
     }
-    return NextResponse.json({ error: 'Failed to add customer' }, { status: 500 })
+
+    const result = await db.run(
+      'INSERT INTO customers (first_name, last_name, phone, email, notes) VALUES (?, ?, ?, ?, ?)',
+      [first_name, last_name, phoneValue, emailValue, notes]
+    );
+    
+    const newCustomer = await db.get('SELECT * FROM customers WHERE id = ?', [result.lastID]);
+    console.log('Created new customer:', newCustomer);
+    return NextResponse.json(newCustomer, { status: 201 });
+
+  } catch (error: any) {
+    console.error('Error in customer creation:', error);
+    return NextResponse.json({ 
+      error: 'Failed to add customer',
+      details: error.message 
+    }, { 
+      status: 500 
+    });
+  } finally {
+    await db.close();
   }
 }
 
@@ -46,11 +76,11 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   const db = await openDb()
   const body = await request.json()
-  const { id, first_name, last_name, phone, email, is_active, notes } = body
+  const { id, first_name, last_name, phone, email, notes } = body // Removed is_active
   try {
     await db.run(
-      'UPDATE customers SET first_name = ?, last_name = ?, phone = ?, email = ?, is_active = ?, notes = ? WHERE id = ?',
-      [first_name, last_name, phone, email, is_active, notes, id]
+      'UPDATE customers SET first_name = ?, last_name = ?, phone = ?, email = ?, notes = ? WHERE id = ?',
+      [first_name, last_name, phone, email, notes, id]
     )
     const updatedCustomer = await db.get('SELECT * FROM customers WHERE id = ?', [id])
     return NextResponse.json(updatedCustomer)

@@ -92,9 +92,7 @@ const Dashboard = () => {
                 (customer.phone && customer.phone.includes(searchQuery)) ||
                 (customer.email && customer.email.toLowerCase().includes(searchQuery.toLowerCase()));
 
-            const matchesFilter = filter === '' || (filter === 'active' && customer.is_active) || (filter === 'inactive' && !customer.is_active);
-
-            return matchesSearchQuery && matchesFilter;
+            return matchesSearchQuery;
         } catch (error) {
             console.error('Error filtering customers:', error);
             return false;
@@ -184,7 +182,6 @@ const Dashboard = () => {
                                     <th className="py-2 px-4 border-b">Last Name</th>
                                     <th className="py-2 px-4 border-b">Phone</th>
                                     <th className="py-2 px-4 border-b">Email</th>
-                                    <th className="py-2 px-4 border-b">Status</th>
                                     <th className="py-2 px-4 border-b">Actions</th>
                                 </tr>
                             </thead>
@@ -199,7 +196,6 @@ const Dashboard = () => {
                                         <td className="py-2 px-4 border-b">{customer.last_name || 'N/A'}</td>
                                         <td className="py-2 px-4 border-b">{customer.phone || 'N/A'}</td>
                                         <td className="py-2 px-4 border-b">{customer.email || 'N/A'}</td>
-                                        <td className="py-2 px-4 border-b">{customer.is_active ? 'Active' : 'Inactive'}</td>
                                         <td className="py-2 px-4 border-b">
                                             <button
                                                 onClick={() => setSelectedCustomer(customer)}

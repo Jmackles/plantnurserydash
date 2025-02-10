@@ -1,0 +1,1572 @@
+# Directory Structure
+
+app/page.tsx
+app/customers/page.tsx
+app/api/customers/[id].ts
+app/api/customers/route.ts
+app/api/want-list/route.ts
+app/wantlistdashboard/page.tsx
+app/components/cards/CustomerCard.js
+app/components/cards/WantListCard.js
+app/components/cards/Cards.js
+app/components/forms/InputForm.tsx
+app/components/shared/CustomerInteractionModal.tsx
+app/components/shared/Modal.js
+app/components/shared/Navbar.js
+app/components/shared/SearchFilterPanel.tsx
+app/lib/types.ts
+app/lib/api.ts
+app/components/cards/Cards.js
+app/layout.tsx
+app/globals.css
+app/scripts/setupDatabase.js
+app/utils/Metrics.ts
+
+
+
+
+# Content from app/page.tsx
+
+"use client"
+import { useEffect, useState } from 'react';
+import { DashboardMetrics, ActivityItem, Customer, WantListEntry } from './lib/types';
+import { fetchCustomers, fetchWantListEntries } from './lib/api';
+import { getMetrics } from './utils/Metrics';
+import Link from 'next/link';
+import { Tooltip } from 'react-tooltip';
+
+export default function Dashboard() {
+    const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+    const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [customers, wantListEntries] = await Promise.all([
+                    fetchCustomers(),
+                    fetchWantListEntries()
+                ]);
+
+                const orders = []; // Fetch orders if you have an API for it
+                const calculatedMetrics = getMetrics(customers, wantListEntries, orders);
+
+                setMetrics(calculatedMetrics);
+
+                // Assuming recent activity can be derived from wantListEntries or another source
+                const activity: ActivityItem[] = wantListEntries.map(entry => ({
+                    type: 'wantlist',
+                    customer: `${entry.customer_first_name} ${entry.customer_last_name}`,
+                    time: 'N/A', // Replace with actual time if available
+                    action: `New request for ${entry.initial}`
+                }));
+
+                setRecentActivity(activity);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    if (!metrics) {
+        return <div>Loading...</div>;
+    }
+
+    return (
+        <main className="p-6 max-w-7xl mx-auto">
+          
+            {/* Metrics Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                {Object.entries(metrics).map(([key, value]) => (
+                    <div key={key} className="card-section text-center" data-tooltip-id={key}>
+                        <div className="text-3xl font-bold text-sage-600">{value}</div>
+                        <div className="text-sm text-sage-500 capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </div>
+                        <Tooltip id={key} place="top" effect="solid">
+                            {`This metric represents ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}.`}
+                        </Tooltip>
+                    </div>
+                ))}
+            </div>
+
+            {/* Recent Activity */}
+            <div className="card-section">
+                <h2 className="text-xl font-semibold text-sage-700 mb-4">Recent Activity</h2>
+                <div className="divide-y divide-sage-200">
+                    {recentActivity.map((activity, index) => (
+                        <div key={index} className="py-3 flex items-center justify-between">
+                            <div>
+                                <span className="font-medium text-sage-600">{activity.customer}</span>
+                                <p className="text-sm text-sage-500">{activity.action}</p>
+                            </div>
+                            <span className="text-xs text-sage-400">{activity.time}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </main>
+    );
+}
+
+# Content from app/customers/page.tsx
+
+'use client'
+import React, { useState, useEffect } from 'react';
+import SearchFilterPanel from '../components/shared/SearchFilterPanel';
+import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
+import { fetchCustomers, addCustomer, updateCustomer } from '../lib/api';
+import { Customer } from '../lib/types';
+
+const Dashboard = () => {
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filter, setFilter] = useState('');
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [isAdding, setIsAdding] = useState(false);
+
+    useEffect(() => {
+        fetchCustomers()
+            .then(setCustomers)
+            .catch((error) => {
+                console.error('Error:', error);
+                setCustomers([]);
+            });
+    }, []);
+
+    const filteredCustomers = customers.filter((customer) => {
+        try {
+            if (!customer || !customer.first_name || !customer.last_name || !customer.phone || !customer.email) {
+                console.warn('Invalid customer data:', customer);
+                return false;
+            }
+
+            const matchesSearchQuery = 
+                customer.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customer.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customer.phone.includes(searchQuery) ||
+                customer.email.toLowerCase().includes(searchQuery.toLowerCase());
+
+            const matchesFilter = filter === '' || (filter === 'active' && customer.is_active) || (filter === 'inactive' && !customer.is_active);
+
+            return matchesSearchQuery && matchesFilter;
+        } catch (error) {
+            console.error('Error filtering customers:', error);
+            return false;
+        }
+    });
+
+    const handleAddCustomer = async (newCustomer: Omit<Customer, 'id'>) => {
+        try {
+            const addedCustomer = await addCustomer(newCustomer);
+            setCustomers((prevCustomers) => [...prevCustomers, addedCustomer]);
+            setIsAdding(false);
+        } catch (error) {
+            console.error('Error adding customer:', error);
+        }
+    };
+
+    const handleSaveCustomer = async (customer: Customer) => {
+        try {
+            if (!customer.id) {
+                throw new Error('Customer ID is missing');
+            }
+            const updatedCustomer = await updateCustomer(customer);
+            setCustomers((prevCustomers) =>
+                prevCustomers.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c))
+            );
+        } catch (error) {
+            console.error('Error updating customer:', error);
+        }
+    };
+    
+
+    return (
+        <main className="p-6 max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-sage-700 mb-8">Customer Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-1">
+                    <SearchFilterPanel
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        filter={filter}
+                        setFilter={setFilter}
+                    />
+                    <button
+                        onClick={() => {
+                            console.log('Add New Customer button clicked');
+                            setIsAdding(true);
+                        }}
+                        className="btn-primary mt-4"
+                    >
+                        Add New Customer
+                    </button>
+                </div>
+                <div className="md:col-span-3">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full bg-white shadow-md rounded-lg">
+                            <thead>
+                                <tr>
+                                    <th className="py-2 px-4 border-b">First Name</th>
+                                    <th className="py-2 px-4 border-b">Last Name</th>
+                                    <th className="py-2 px-4 border-b">Phone</th>
+                                    <th className="py-2 px-4 border-b">Email</th>
+                                    <th className="py-2 px-4 border-b">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredCustomers.map((customer) => (
+                                    <tr key={customer.id} onClick={() => setSelectedCustomer(customer)} className="cursor-pointer">
+                                        <td className="py-2 px-4 border-b">{customer.first_name}</td>
+                                        <td className="py-2 px-4 border-b">{customer.last_name}</td>
+                                        <td className="py-2 px-4 border-b">{customer.phone}</td>
+                                        <td className="py-2 px-4 border-b">{customer.email}</td>
+                                        <td className="py-2 px-4 border-b">{customer.is_active ? 'Active' : 'Inactive'}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {selectedCustomer && (
+                <CustomerInteractionModal
+                    customer={selectedCustomer}
+                    onClose={() => setSelectedCustomer(null)}
+                    onSave={handleSaveCustomer}
+                />
+            )}
+            {isAdding && (
+                <CustomerInteractionModal
+                    customer={null}
+                    onClose={() => {
+                        console.log('Closing Add New Customer modal');
+                        setIsAdding(false);
+                    }}
+                    onSave={handleAddCustomer}
+                />
+            )}
+        </main>
+    );
+};
+
+export default Dashboard;
+
+
+# Content from app/api/customers/[id].ts
+
+// [id].ts
+import { NextRequest, NextResponse } from 'next/server';
+import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+    try {
+        const db = await open({
+            filename: './database.sqlite',
+            driver: sqlite3.Database
+        });
+
+        // Ensure that all required fields are sent in the request body
+        const { first_name, last_name, phone, email, is_active, notes } = await request.json();
+
+        // If any required fields are missing, return an error
+        if (!first_name || !last_name || !phone || !email || is_active === undefined) {
+            return NextResponse.json(
+                { error: 'Missing required fields' },
+                { status: 400 }
+            );
+        }
+
+        const result = await db.run(
+            'UPDATE customers SET first_name = ?, last_name = ?, phone = ?, email = ?, is_active = ?, notes = ? WHERE id = ?',
+            [first_name, last_name, phone, email, is_active, notes, params.id]
+        );
+
+        // Check if any rows were updated
+        if (result.changes === 0) {
+            throw new Error('No rows updated');
+        }
+
+        return NextResponse.json({ message: 'Customer updated successfully' });
+    } catch (error) {
+        console.error('Error updating customer:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json(
+            { error: 'Failed to update customer', details: errorMessage },
+            { status: 500 }
+        );
+    }
+}
+
+
+# Content from app/api/customers/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
+
+export async function GET() {
+    try {
+        const db = await open({
+            filename: './database.sqlite',
+            driver: sqlite3.Database
+        });
+        
+        const customers = await db.all('SELECT * FROM customers');
+        await db.close();
+        return NextResponse.json(customers);
+    } catch (error: unknown) {
+        console.error('Error fetching customers:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch customers' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function POST(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { first_name, last_name, phone, email } = body;
+        
+        const db = await open({
+            filename: './database.sqlite',
+            driver: sqlite3.Database
+        });
+
+        const result = await db.run(
+            'INSERT INTO customers (first_name, last_name, phone, email) VALUES (?, ?, ?, ?)',
+            [first_name, last_name, phone, email]
+        );
+        await db.close();
+        return NextResponse.json({ id: result.lastID }, { status: 201 });
+    } catch (error) {
+        console.error('Error adding customer:', error);
+        return NextResponse.json(
+            { error: 'Failed to add customer' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function PUT(request: NextRequest) {
+    try {
+        const { id, first_name, last_name, phone, email, is_active, notes } = await request.json();
+        
+        const db = await open({
+            filename: './database.sqlite',
+            driver: sqlite3.Database
+        });
+
+        const result = await db.run(
+            'UPDATE customers SET first_name = ?, last_name = ?, phone = ?, email = ?, is_active = ?, notes = ? WHERE id = ?',
+            [first_name, last_name, phone, email, is_active, notes, id]
+        );
+
+        if (result.changes === 0) {
+            throw new Error('No rows updated');
+        }
+        await db.close();
+        return NextResponse.json({ message: 'Customer updated successfully' });
+    } catch (error: unknown) {
+        console.error('Error updating customer:', error);
+        return NextResponse.json(
+            { error: 'Failed to update customer', details: error instanceof Error ? error.message : String(error) },
+            { status: 500 }
+        );
+    }
+}
+
+# Content from app/api/want-list/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+
+export async function GET() {
+    try {
+        const db = await open({
+            filename: './database.sqlite',
+            driver: sqlite3.Database
+        });
+        
+        const entries = await db.all(`
+            SELECT 
+                w.*,
+                c.first_name as customer_first_name,
+                c.last_name as customer_last_name,
+                json_group_array(
+                    json_object(
+                        'name', p.name,
+                        'size', p.size,
+                        'quantity', p.quantity
+                    )
+                ) as plants
+            FROM want_list w
+            JOIN customers c ON w.customer_id = c.id
+            LEFT JOIN plants p ON w.id = p.want_list_id
+            GROUP BY w.id
+        `);
+
+        const parsedEntries = entries.map(entry => ({
+            ...entry,
+            plants: JSON.parse(entry.plants || '[]')
+        }));
+
+        return NextResponse.json(parsedEntries);
+    } catch (error) {
+        console.error('Error fetching want list entries:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch want list entries' },
+            { status: 500 }
+        );
+    }
+}
+
+export async function POST(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { customer_id, initial, notes, plants } = body;
+        
+        const db = await open({
+            filename: './database.sqlite',
+            driver: sqlite3.Database
+        });
+
+        const result = await db.run(
+            'INSERT INTO want_list (customer_id, initial, notes) VALUES (?, ?, ?)',
+            [customer_id, initial, notes]
+        );
+
+        if (plants && plants.length > 0) {
+            for (const plant of plants) {
+                await db.run(
+                    'INSERT INTO plants (want_list_id, name, size, quantity) VALUES (?, ?, ?, ?)',
+                    [result.lastID, plant.name, plant.size, plant.quantity]
+                );
+            }
+        }
+
+        return NextResponse.json({ id: result.lastID }, { status: 201 });
+    } catch (error) {
+        console.error('Error adding want list entry:', error);
+        return NextResponse.json(
+            { error: 'Failed to add want list entry' },
+            { status: 500 }
+        );
+    }
+}
+
+# Content from app/wantlistdashboard/page.tsx
+
+'use client'
+import React, { useState, useEffect } from 'react';
+import WantListCard from '../components/cards/WantListCard';
+import Modal from '../components/shared/Modal';
+import { fetchWantListEntries } from '../lib/api';
+import { WantListEntry, Plant } from '../lib/types';
+
+const WantListDashboard = () => {
+    const [wantListEntries, setWantListEntries] = useState<WantListEntry[]>([]);
+    const [selectedEntry, setSelectedEntry] = useState<WantListEntry | null>(null);
+    const [editData, setEditData] = useState<WantListEntry | null>(null);
+
+    const fetchEntries = async () => {
+        try {
+            const entries = await fetchWantListEntries();
+            setWantListEntries(entries);
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchEntries();
+    }, []);
+
+    const closeModal = () => {
+        setSelectedEntry(null);
+        setEditData(null);
+    };
+
+    const handleEditChange = (field: keyof WantListEntry, value: string | number | boolean) => {
+        setEditData((prev) => (prev ? { ...prev, [field]: value } : null));
+    };
+
+    const handlePlantChange = (index: number, field: keyof Plant, value: string | number) => {
+        if (!editData || !editData.plants) return;
+        const updatedPlants = [...editData.plants];
+        updatedPlants[index] = { ...updatedPlants[index], [field]: value };
+        setEditData({ ...editData, plants: updatedPlants });
+    };
+
+    const handleAddPlant = () => {
+        if (!editData) return;
+        setEditData({
+            ...editData,
+            plants: [...(editData.plants || []), { name: '', size: '', quantity: 1 }],
+        });
+    };
+
+    const saveChanges = async () => {
+        try {
+            const res = await fetch(`/api/want-list`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: editData?.id, updatedFields: editData }),
+            });
+            if (res.ok) {
+                alert('Changes saved successfully!');
+                await fetchEntries(); // Re-fetch data after saving changes
+                closeModal();
+            } else {
+                const errorData = await res.json();
+                alert(`Failed to save changes: ${errorData.error}`);
+            }
+        } catch (error) {
+            console.error('Error saving changes:', error);
+            alert('An unexpected error occurred while saving changes.');
+        }
+    };
+
+    return (
+        <main className="p-6 max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-sage-700 mb-8">Want List Dashboard</h1>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                {wantListEntries.map((entry) => (
+                    <WantListCard 
+                        key={entry.id} 
+                        entry={entry} 
+                        onClick={() => {
+                            setSelectedEntry(entry);
+                            setEditData(entry);
+                        }} 
+                    />
+                ))}
+            </div>
+
+            {selectedEntry && (
+                <Modal
+                    title={`Edit Entry for ${selectedEntry.customer_first_name} ${selectedEntry.customer_last_name}`}
+                    onClose={closeModal}
+                >
+                    <div className="mb-4">
+                        <label className="form-label">Initial:</label>
+                        <input
+                            type="text"
+                            value={editData?.initial || ''}
+                            onChange={(e) => handleEditChange('initial', e.target.value)}
+                            className="input-field"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Notes:</label>
+                        <textarea
+                            value={editData?.notes || ''}
+                            onChange={(e) => handleEditChange('notes', e.target.value)}
+                            className="input-field"
+                        ></textarea>
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Spoken To:</label>
+                        <input
+                            type="text"
+                            value={editData?.spoken_to || ''}
+                            onChange={(e) => handleEditChange('spoken_to', e.target.value)}
+                            className="input-field"
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Status:</label>
+                        <select
+                            value={editData?.is_closed ? 'Closed' : 'Open'}
+                            onChange={(e) => handleEditChange('is_closed', e.target.value === 'Closed')}
+                            className="input-field"
+                        >
+                            <option value="Open">Open</option>
+                            <option value="Closed">Closed</option>
+                        </select>
+                    </div>
+                    <div className="mb-4">
+                        <label className="form-label">Plants:</label>
+                        <ul className="list-disc pl-4">
+                            {editData?.plants?.map((plant, index) => (
+                                <li key={index}>
+                                    <input
+                                        type="text"
+                                        placeholder="Plant Name"
+                                        value={plant.name}
+                                        onChange={(e) => handlePlantChange(index, 'name', e.target.value)}
+                                        className="input-field"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Size"
+                                        value={plant.size}
+                                        onChange={(e) => handlePlantChange(index, 'size', e.target.value)}
+                                        className="input-field"
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Quantity"
+                                        value={plant.quantity}
+                                        onChange={(e) => handlePlantChange(index, 'quantity', parseInt(e.target.value))}
+                                        className="input-field"
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                        <button
+                            className="btn-primary mt-2"
+                            onClick={handleAddPlant}
+                        >
+                            Add Plant
+                        </button>
+                    </div>
+
+                    <div className="flex justify-end space-x-2">
+                        <button
+                            className="btn-primary"
+                            onClick={saveChanges}
+                        >
+                            Save
+                        </button>
+                        <button
+                            className="btn-secondary"
+                            onClick={closeModal}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </Modal>
+            )}
+        </main>
+    );
+};
+
+export default WantListDashboard;
+
+# Content from app/components/cards/CustomerCard.js
+
+// Customer Card Component components/cards/CustomerCard.js
+'use client'
+import React from 'react';
+import Card from './Cards';
+
+const CustomerCard = ({ customer, onClick }) => {
+    return (
+        <Card>
+            <div onClick={onClick} className="cursor-pointer">
+                <h2 className="text-lg font-semibold">
+                    {customer.first_name} {customer.last_name}
+                </h2>
+                <p className="text-sm">Phone: {customer.phone}</p>
+                <p className="text-sm">Email: {customer.email}</p>
+            </div>
+        </Card>
+    );
+};
+
+export default CustomerCard;
+
+
+# Content from app/components/cards/WantListCard.js
+
+// Want List Card Component components/cards/WantListCard.js
+'use client'
+import React from 'react';
+import Card from './Cards';
+
+const WantListCard = ({ entry, onClick }) => {
+    return (
+        <Card>
+            <div onClick={onClick} className={`cursor-pointer ${entry.is_closed ? 'line-through opacity-75' : ''}`}>
+                <h2 className="text-lg font-semibold">
+                    {entry.customer_first_name} {entry.customer_last_name}
+                </h2>
+                <p className="text-sm">Initial: {entry.initial}</p>
+                <p className="text-sm">Notes: {entry.notes}</p>
+                <p className="text-sm">Spoken To: {entry.spoken_to || 'N/A'}</p>
+                <p className="text-sm">Status: {entry.is_closed ? 'Closed' : 'Open'}</p>
+                <p className="text-sm font-medium mt-2">Plants:</p>
+                <ul className="list-disc pl-4">
+                    {entry.plants?.map((plant, index) => (
+                        <li key={index}>
+                            {plant.name} - {plant.size || 'N/A'} - Qty: {plant.quantity || 1}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </Card>
+    );
+};
+
+export default WantListCard;
+
+
+# Content from app/components/cards/Cards.js
+
+'use client'
+import React from 'react';
+import styled from 'styled-components';
+
+const CardContainer = styled.div`
+    width: 300px;
+    height: 500px;
+    padding: 4px;
+    margin: 2px;
+    border: 2px solid black;
+    border-radius: 1%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+    word-wrap: break-word;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #e0e0e0;
+
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #e0e0e0;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+    }
+`;
+
+const Card = ({ children }) => {
+    return <CardContainer>{children}</CardContainer>;
+};
+
+export default Card;
+
+# Content from app/components/forms/InputForm.tsx
+
+'use client'
+
+import React, { useState } from 'react';
+import { FormData, ApiResponse } from '../../lib/types';
+
+const InputForm = ({ onSubmit, onClose }: { onSubmit: (formData: FormData) => Promise<ApiResponse>, onClose: () => void }) => {
+    const [formData, setFormData] = useState<FormData>({
+        firstName: '',
+        lastName: '',
+        phone: '',
+        email: '',
+        initial: '',
+        notes: '',
+        plants: [],
+    });
+    const [errors, setErrors] = useState({ firstName: false, lastName: false, initial: false });
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleAddPlant = () => {
+        setFormData({
+            ...formData,
+            plants: [...formData.plants, { name: '', size: '', quantity: 1 }],
+        });
+    };
+
+    const handlePlantChange = (index: number, field: keyof Plant, value: string | number) => {
+        const updatedPlants = [...formData.plants];
+        updatedPlants[index] = { ...updatedPlants[index], [field]: value };
+        setFormData({ ...formData, plants: updatedPlants });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const newErrors = {
+            firstName: !formData.firstName,
+            lastName: !formData.lastName,
+            initial: !formData.initial,
+        };
+        setErrors(newErrors);
+
+        if (Object.values(newErrors).some(Boolean)) return;
+
+        try {
+            const res = await onSubmit(formData);
+
+            if (!res || typeof res !== 'object') {
+                throw new Error('No response received or invalid response from the server.');
+            }
+
+            if (res.conflict) {
+                const confirmUseExisting = window.confirm(res.message || 'Conflict detected. Use existing customer?');
+                if (confirmUseExisting) {
+                    formData.spokenTo = `${formData.firstName} ${formData.lastName}`;
+                    formData.customer_id = res.customer?.id;
+                    const finalRes = await onSubmit(formData);
+
+                    if (!finalRes || !finalRes.success) {
+                        throw new Error('Failed to submit form for the existing customer.');
+                    }
+                } else {
+                    // alert('Customer creation aborted.');
+                }
+            } else if (!res.success) {
+                throw new Error(res.error || 'Failed to submit form.');
+            } else {
+                alert('Form submitted successfully!');
+                onClose();
+            }
+        } catch (error) {
+            console.error('Error during submission:', (error as Error).message || error);
+            alert((error as Error).message || 'An unexpected error occurred during form submission.');
+        }
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h2 className="text-xl font-bold mb-4">Add New Customer</h2>
+                <form onSubmit={handleSubmit} className="card-section max-w-2xl mx-auto">
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label className="form-label">First Name</label>
+                            <input
+                                type="text"
+                                name="firstName"
+                                value={formData.firstName}
+                                onChange={handleChange}
+                                placeholder="First Name"
+                                className={`input-field ${errors.firstName ? 'border-red-400' : ''}`}
+                            />
+                            {errors.firstName && <p className="text-red-500 text-sm mt-1">First name is required.</p>}
+                        </div>
+                        <div>
+                            <label className="form-label">Last Name</label>
+                            <input
+                                type="text"
+                                name="lastName"
+                                value={formData.lastName}
+                                onChange={handleChange}
+                                placeholder="Last Name"
+                                className={`input-field ${errors.lastName ? 'border-red-400' : ''}`}
+                            />
+                            {errors.lastName && <p className="text-red-500 text-sm mt-1">Last name is required.</p>}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label className="form-label">Phone</label>
+                            <input
+                                type="text"
+                                name="phone"
+                                value={formData.phone}
+                                onChange={handleChange}
+                                placeholder="Phone"
+                                className="input-field"
+                            />
+                        </div>
+                        <div>
+                            <label className="form-label">Email</label>
+                            <input
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="Email"
+                                className="input-field"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="form-label">Initial</label>
+                        <input
+                            type="text"
+                            name="initial"
+                            value={formData.initial}
+                            onChange={handleChange}
+                            placeholder="Initial"
+                            className={`input-field ${errors.initial ? 'border-red-400' : ''}`}
+                        />
+                        {errors.initial && <p className="text-red-500 text-sm mt-1">Initial is required.</p>}
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="form-label">Notes</label>
+                        <textarea
+                            name="notes"
+                            value={formData.notes}
+                            onChange={handleChange}
+                            placeholder="Notes"
+                            className="input-field min-h-[100px]"
+                        ></textarea>
+                    </div>
+
+                    <div className="mb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <label className="form-label m-0">Plants</label>
+                            <button type="button" onClick={handleAddPlant} className="btn-secondary">
+                                Add Plant
+                            </button>
+                        </div>
+                        
+                        {formData.plants.map((plant, index) => (
+                            <div key={index} className="p-4 mb-4 bg-sage-50 rounded-lg border border-sage-200">
+                                <div className="grid grid-cols-3 gap-4">
+                                    <input
+                                        type="text"
+                                        placeholder="Plant Name"
+                                        value={plant.name}
+                                        onChange={(e) => handlePlantChange(index, 'name', e.target.value)}
+                                        className="input-field"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Size"
+                                        value={plant.size}
+                                        onChange={(e) => handlePlantChange(index, 'size', e.target.value)}
+                                        className="input-field"
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Quantity"
+                                        value={plant.quantity}
+                                        onChange={(e) => handlePlantChange(index, 'quantity', parseInt(e.target.value))}
+                                        className="input-field"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex justify-end">
+                        <button type="submit" className="btn-primary">
+                            Submit
+                        </button>
+                    </div>
+                </form>
+                <button
+                    className="absolute top-2 right-2 text-gray-600"
+                    onClick={onClose}
+                >
+                    X
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default InputForm;
+
+
+# Content from app/components/shared/CustomerInteractionModal.tsx
+
+import React, { useState, useEffect } from 'react';
+import { Customer, WantListEntry } from '../../lib/types';
+import { fetchWantListEntries } from '../../lib/api';
+
+interface CustomerInteractionModalProps {
+    customer: Customer | null;
+    onClose: () => void;
+    onSave: (updatedCustomer: Customer) => void;
+}
+
+const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({ customer, onClose, onSave }) => {
+    const [wantListEntries, setWantListEntries] = useState<WantListEntry[]>([]);
+    const [editedCustomer, setEditedCustomer] = useState<Customer | null>(customer);
+
+    useEffect(() => {
+        console.log('CustomerInteractionModal mounted with customer:', customer);
+        if (customer) {
+            fetchWantListEntries()
+                .then(entries => setWantListEntries(entries.filter(entry => entry.customer_id === customer.id)))
+                .catch(error => console.error('Error fetching want list entries:', error));
+        }
+    }, [customer]);
+
+    // Keep this effect to set a blank Customer when adding:
+    useEffect(() => {
+        if (customer) {
+            setEditedCustomer(customer);
+        } else {
+            setEditedCustomer({
+                id: 0, // Set default ID for new customers
+                first_name: '',
+                last_name: '',
+                phone: '',
+                email: '',
+                is_active: true,
+                notes: ''
+            });            
+        }
+    }, [customer]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setEditedCustomer(prev => prev ? { ...prev, [name]: value } : null);
+    };
+
+    const handleSave = async () => {
+        if (editedCustomer) {
+            console.log('Saving customer:', editedCustomer);
+            try {
+                const response = await onSave(editedCustomer);
+                console.log('Save response:', response); // Inspect response for possible errors
+            } catch (error) {
+                console.error('Error saving customer:', error);
+            }
+        } else {
+            console.log('No customer to save');
+        }
+    };
+    
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2 className="text-xl font-bold mb-4">{customer ? 'Edit Customer' : 'Add New Customer'}</h2>
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">First Name</label>
+                    <input
+                        type="text"
+                        name="first_name"
+                        value={editedCustomer?.first_name || ''}
+                        onChange={handleChange}
+                        className="input-field"
+                    />
+                </div>
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                    <input
+                        type="text"
+                        name="last_name"
+                        value={editedCustomer?.last_name || ''}
+                        onChange={handleChange}
+                        className="input-field"
+                    />
+                </div>
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input
+                        type="text"
+                        name="phone"
+                        value={editedCustomer?.phone || ''}
+                        onChange={handleChange}
+                        className="input-field"
+                    />
+                </div>
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <input
+                        type="text"
+                        name="email"
+                        value={editedCustomer?.email || ''}
+                        onChange={handleChange}
+                        className="input-field"
+                    />
+                </div>
+                <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    <select
+                        name="is_active"
+                        value={editedCustomer?.is_active ? 'active' : 'inactive'}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                            setEditedCustomer(prev => prev ? { ...prev, is_active: e.target.value === 'active' } : null);
+                        }}
+                        className="input-field"
+                    >
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div className="mb-4">
+                    <label className="form-label">Notes:</label>
+                    <textarea
+                        name="notes"
+                        className="input-field"
+                        onChange={handleChange}
+                    ></textarea>
+                </div>
+                <div className="mb-4">
+                    <h3 className="text-lg font-semibold">Want List Items</h3>
+                    <ul>
+                        {wantListEntries.map(entry => (
+                            <li key={entry.id} className="mb-2">
+                                <div className="font-medium">{entry.initial}</div>
+                                <div className="text-sm">{entry.notes}</div>
+                                <div className="text-sm">{entry.is_closed ? 'Closed' : 'Open'}</div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+                <div className="flex justify-end">
+                    <button onClick={onClose} className="btn-secondary mr-2">Cancel</button>
+                    <button onClick={handleSave} className="btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default CustomerInteractionModal;
+
+# Content from app/components/shared/Modal.js
+
+import React from 'react';
+
+const Modal = ({ title, children, onClose }) => (
+    <div className="modal-overlay">
+        <div className="modal-content">
+            <h2 className="text-xl font-bold mb-4">{title}</h2>
+            {children}
+            <button
+                className="absolute top-2 right-2 text-gray-600"
+                onClick={onClose}
+            >
+                X
+            </button>
+        </div>
+    </div>
+);
+
+export default Modal;
+
+
+# Content from app/components/shared/Navbar.js
+
+import Link from 'next/link';
+
+const Navbar = () => {
+    return (
+        <nav className="bg-sage-700 p-4 text-white">
+            <div className="max-w-7xl mx-auto flex justify-between items-center">
+                <div className="text-2xl font-bold">Nursery Dashboard</div>
+                <div className="space-x-4">
+                    <Link href="/" className="hover:text-sage-300">Home</Link>
+                    <Link href="/customers" className="hover:text-sage-300">Customers</Link>
+                    <Link href="/wantlistdashboard" className="hover:text-sage-300">Want List</Link>
+                </div>
+            </div>
+        </nav>
+    );
+};
+
+export default Navbar;
+
+# Content from app/components/shared/SearchFilterPanel.tsx
+
+import React from 'react';
+
+interface SearchFilterPanelProps {
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
+    filter: string;
+    setFilter: (filter: string) => void;
+}
+
+const SearchFilterPanel: React.FC<SearchFilterPanelProps> = ({ searchQuery, setSearchQuery, filter, setFilter }) => {
+    return (
+        <div className="p-4 bg-white shadow-md rounded-lg mb-4">
+            <h2 className="text-xl font-bold mb-4">Search and Filter</h2>
+            <div className="mb-4">
+                <label className="form-label">Search:</label>
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="input-field"
+                    placeholder="Search by name, phone, or email"
+                />
+            </div>
+            <div>
+                <label className="form-label">Filter:</label>
+                <select
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="input-field"
+                >
+                    <option value="">All</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+    );
+};
+
+export default SearchFilterPanel;
+
+# Content from app/lib/types.ts
+
+export interface Customer {
+    id: number;
+    first_name: string;
+    last_name: string;
+    phone: string;
+    email: string;
+    is_active: boolean;
+    notes: string;
+}
+
+export interface Plant {
+    name: string;
+    size: string;
+    quantity: number;
+}
+
+export interface WantListEntry {
+    id: number;
+    customer_id: number;
+    initial: string;
+    notes?: string;
+    is_closed: boolean;
+    spoken_to?: string;
+    plants: Plant[];
+    customer_first_name: string;
+    customer_last_name: string;
+}
+
+export interface FormData {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    initial: string;
+    notes?: string;
+    plants: Plant[];
+    spokenTo?: string;
+    customer_id?: number;
+}
+
+export interface ApiResponse {
+    success: boolean;
+    error?: string;
+    conflict?: boolean;
+    message?: string;
+    customer?: Customer;
+}
+
+export interface DashboardMetrics {
+    totalCustomers: number;
+    activeWantlists: number;
+    totalPlants: number;
+    pendingOrders: number;
+}
+
+export interface ActivityItem {
+    type: 'wantlist' | 'customer' | 'order';
+    customer: string;
+    time: string;
+    action: string;
+}
+
+# Content from app/lib/api.ts
+
+import { Customer, WantListEntry } from "./types";
+
+export const fetchCustomers = async (): Promise<Customer[]> => {
+    const res = await fetch('/api/customers');
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to fetch customers');
+    }
+    return res.json();
+};
+
+export const fetchWantListEntries = async (): Promise<WantListEntry[]> => {
+    const res = await fetch('/api/want-list');
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to fetch want list entries');
+    }
+    return res.json();
+};
+
+export const addCustomer = async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
+    const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(customer),
+    });
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to add customer');
+    }
+    return res.json();
+};
+
+export const updateCustomer = async (customer: Customer): Promise<Customer> => {
+    const response = await fetch('/api/customers', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(customer),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update customer');
+    }
+
+    return customer;
+};
+
+# Content from app/components/cards/Cards.js
+
+'use client'
+import React from 'react';
+import styled from 'styled-components';
+
+const CardContainer = styled.div`
+    width: 300px;
+    height: 500px;
+    padding: 4px;
+    margin: 2px;
+    border: 2px solid black;
+    border-radius: 1%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow-y: auto;
+    word-wrap: break-word;
+    scrollbar-width: thin;
+    scrollbar-color: #888 #e0e0e0;
+
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: #e0e0e0;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 10px;
+        border: 2px solid #e0e0e0;
+    }
+`;
+
+const Card = ({ children }) => {
+    return <CardContainer>{children}</CardContainer>;
+};
+
+export default Card;
+
+# Content from app/layout.tsx
+
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import Navbar from './components/shared/Navbar';
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Create Next App",
+  description: "Generated by create next app",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <Navbar />
+        {children}
+      </body>
+    </html>
+  );
+}
+
+
+# Content from app/globals.css
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f7f7f7; /* Soft pastel background */
+  --foreground: #333333; /* Darker text for better contrast */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1a1a1a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer components {
+  .input-field {
+    @apply w-full p-2 mb-4 border-2 border-sage-300 rounded-lg 
+           focus:outline-none focus:border-sage-500 
+           bg-white/50 transition-colors;
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 bg-sage-500 text-white rounded-lg
+           hover:bg-sage-600 active:bg-sage-700
+           transition-colors shadow-md;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-lavender-400 text-white rounded-lg
+           hover:bg-lavender-500 active:bg-lavender-600
+           transition-colors shadow-md;
+  }
+
+  .card-section {
+    @apply p-4 mb-4 bg-white/80 rounded-xl shadow-md
+           border border-sage-200;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium mb-2 text-sage-700;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  }
+
+  .modal-content {
+    @apply bg-white p-6 rounded-lg shadow-lg w-2/3 relative;
+  }
+}
+
+
+# Content from app/scripts/setupDatabase.js
+
+// scripts/setupDatabase.js
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+
+(async () => {
+    const db = await open({ filename: './database.sqlite', driver: sqlite3.Database });
+
+    // Create the customers table if it doesn't exist
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS customers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            first_name TEXT NOT NULL,
+            last_name TEXT NOT NULL,
+            phone TEXT,
+            email TEXT,
+            is_active BOOLEAN DEFAULT 1,
+            notes TEXT,
+            UNIQUE (phone, email)
+        );
+    `);
+
+    // Create the want_list table if it doesn't exist
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS want_list (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER NOT NULL,
+            initial TEXT,
+            notes TEXT,
+            is_closed BOOLEAN DEFAULT FALSE,
+            spoken_to TEXT, -- Added the 'spoken_to' column
+            FOREIGN KEY (customer_id) REFERENCES customers(id)
+        );
+    `);
+
+    // Create the plants table if it doesn't exist
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS plants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            want_list_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            size TEXT,
+            quantity INTEGER DEFAULT 1,
+            FOREIGN KEY (want_list_id) REFERENCES want_list(id)
+        );
+    `);
+
+    console.log('Database setup complete!');
+    process.exit(0);
+})();
+
+
+# Content from app/utils/Metrics.ts
+
+import { Customer, WantListEntry, Plant } from '../lib/types';
+
+// Function to calculate total customers
+export const calculateTotalCustomers = (customers: Customer[]): number => {
+    return customers.length;
+};
+
+// Function to calculate active want lists
+export const calculateActiveWantLists = (wantListEntries: WantListEntry[]): number => {
+    return wantListEntries.filter(entry => !entry.is_closed).length;
+};
+
+// Function to calculate total plants
+export const calculateTotalPlants = (wantListEntries: WantListEntry[]): number => {
+    return wantListEntries.reduce((total, entry) => {
+        return total + entry.plants.reduce((plantTotal, plant) => plantTotal + plant.quantity, 0);
+    }, 0);
+};
+
+// Function to calculate pending orders
+export const calculatePendingOrders = (orders: any[]): number => {
+    return orders.filter(order => order.status === 'pending').length;
+};
+
+// Function to calculate average plants per want list
+export const calculateAveragePlantsPerWantList = (wantListEntries: WantListEntry[]): number => {
+    const totalPlants = calculateTotalPlants(wantListEntries);
+    return wantListEntries.length ? totalPlants / wantListEntries.length : 0;
+};
+
+// Function to calculate total orders
+export const calculateTotalOrders = (orders: any[]): number => {
+    return orders.length;
+};
+
+// Function to calculate completed orders
+export const calculateCompletedOrders = (orders: any[]): number => {
+    return orders.filter(order => order.status === 'completed').length;
+};
+
+// Function to get all metrics
+export const getMetrics = (customers: Customer[], wantListEntries: WantListEntry[], orders: any[]) => {
+    return {
+        totalCustomers: calculateTotalCustomers(customers),
+        activeWantLists: calculateActiveWantLists(wantListEntries),
+        totalPlants: calculateTotalPlants(wantListEntries),
+        pendingOrders: calculatePendingOrders(orders),
+        averagePlantsPerWantList: calculateAveragePlantsPerWantList(wantListEntries),
+        totalOrders: calculateTotalOrders(orders),
+        completedOrders: calculateCompletedOrders(orders),
+    };
+};

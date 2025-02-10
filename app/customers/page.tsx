@@ -117,9 +117,9 @@ const Dashboard = () => {
             
             setCustomers((prevCustomers) => [...prevCustomers, addedCustomer]);
             setIsAdding(false);
-        } catch (error) {
-            if (error.message.includes('A customer with this phone or email already exists')) {
-                alert('A customer with this phone or email already exists.');
+        } catch (error: any) {
+            if (error.message.includes('A customer with this phone number or email already exists')) {
+                alert('A customer with this phone number or email already exists.');
             } else {
                 console.error('Error adding customer:', error);
                 alert('Failed to add customer.');

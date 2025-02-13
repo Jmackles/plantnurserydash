@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WantList, Customer, Plant } from './../lib/types';
-import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } from '../../lib/api';
+import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } from './../lib/api';
 import WantListCard from './../components/cards/WantListCard';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
+import WantListEntryModal from '../components/shared/WantListEntryModal';  // Add this import
 import BulkActionsBar from '../components/shared/BulkActionsBar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -42,6 +43,7 @@ const WantListDashboard = () => {
     const [filterStatus, setFilterStatus] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+    const [showNewEntryModal, setShowNewEntryModal] = useState(false);  // Add this state
 
     const fetchEntries = async () => {
         try {
@@ -384,7 +386,7 @@ const WantListDashboard = () => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-sage-800">Want List Dashboard</h1>
                 <button
-                    onClick={() => setIsAdding(true)}
+                    onClick={() => setShowNewEntryModal(true)}  // Modified this line
                     className="btn-primary"
                 >
                     Add New Want List Entry
@@ -469,6 +471,21 @@ const WantListDashboard = () => {
                     Next
                 </button>
             </div>
+
+            {showNewEntryModal && (  // Add this modal
+                <WantListEntryModal
+                    onClose={() => setShowNewEntryModal(false)}
+                    onSave={async (customer, wantList) => {
+                        try {
+                            await saveNewEntry(customer, wantList);
+                            setShowNewEntryModal(false);
+                        } catch (error) {
+                            console.error('Error saving new entry:', error);
+                            toast.error('Failed to save new entry');
+                        }
+                    }}
+                />
+            )}
 
             {selectedEntry && (
                 <CustomerInteractionModal

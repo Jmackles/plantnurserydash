@@ -18,37 +18,35 @@ export const fetchCustomerById = async (id: number): Promise<Customer> => {
     return response.json();
 };
 
-export const addCustomer = async (customer: Customer): Promise<Customer> => {
-    if (isCustomerRequestInProgress) {
-        throw new Error(JSON.stringify({
-            error: 'A request is already in progress',
-            status: 429
-        }));
-    }
-
-    isCustomerRequestInProgress = true;
-
+export const addCustomer = async (customer: Partial<Customer>) => {
     try {
         const response = await fetch('/api/customers', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(customer)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(customer),
         });
 
         const data = await response.json();
 
-        if (!response.ok) {
-            throw new Error(JSON.stringify({
-                ...data,
-                status: response.status
-            }));
+        // If we get a 409, it means the customer exists - return it
+        if (response.status === 409) {
+            return {
+                isExisting: true,
+                customer: data.existingCustomer
+            };
         }
 
-        return data;
-    } finally {
-        isCustomerRequestInProgress = false;
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to add customer');
+        }
+
+        return {
+            isExisting: false,
+            customer: data
+        };
+    } catch (error) {
+        console.error('Error in addCustomer:', error);
+        throw error;
     }
 };
 
@@ -68,16 +66,44 @@ export const updateCustomer = async (customer: Customer): Promise<Customer> => {
     return response.json();
 };
 
-export const addWantListEntry = async (wantListEntry: WantList): Promise<WantList> => {
-    const response = await fetch('/api/want-list', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(wantListEntry)
-    });
+export const addWantListEntry = async (data: Partial<WantList>) => {
+    try {
+        const response = await fetch('/api/want-list', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_id: data.customer_id,
+                initial: data.initial,
+                general_notes: data.general_notes,
+                status: 'pending',
+                plants: data.plants?.map(plant => ({
+                    name: plant.name,
+                    size: plant.size || '',
+                    quantity: parseInt(plant.quantity.toString()),
+                    status: 'pending',
+                    requested_at: new Date().toISOString()
+                }))
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to add want list entry');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error in addWantListEntry:', error);
+        throw error;
+    }
+};
+
+export const fetchWantListEntries = async (): Promise<WantList[]> => {
+    const response = await fetch('/api/want-list');
     if (!response.ok) {
-        throw new Error('Failed to add want list entry');
+        throw new Error('Failed to fetch want list entries');
     }
     return response.json();
 };

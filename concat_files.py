@@ -27,6 +27,8 @@ import shutil
 from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, scrolledtext, END
+import threading
+import file_io_utils
 
 
 class FileConcatenatorApp(tk.Tk):
@@ -36,12 +38,9 @@ class FileConcatenatorApp(tk.Tk):
         self.geometry("1000x600")  # increased width for side panel
         self.resizable(True, True)
 
-        # List to store full paths of files to be concatenated.
-        self.selected_files = []
+        # Remove duplicate state; listbox becomes the single source of truth.
         self.master_filename = 'master.txt'
-        # Map tree items to full paths
         self.tree_item_to_path = {}
-        # Keep original text for tree items (without check mark)
         self.tree_item_original_text = {}
 
         # Use a PanedWindow to separate explorer and file list
@@ -143,9 +142,9 @@ class FileConcatenatorApp(tk.Tk):
         files = filedialog.askopenfilenames(title="Select Files to Concatenate")
         if files:
             count = 0
+            current_files = self.listbox_files.get(0, END)
             for file in files:
-                if file not in self.selected_files:
-                    self.selected_files.append(file)
+                if file not in current_files:
                     self.listbox_files.insert(END, file)
                     count += 1
             self.log(f"Added {count} file(s).")
@@ -155,15 +154,11 @@ class FileConcatenatorApp(tk.Tk):
         selected_indices = list(self.listbox_files.curselection())
         selected_indices.sort(reverse=True)
         for index in selected_indices:
-            file = self.listbox_files.get(index)
-            if file in self.selected_files:
-                self.selected_files.remove(file)
             self.listbox_files.delete(index)
         self.log("Removed selected file(s).")
 
     def clear_list(self):
         """Clear all files from the selection list."""
-        self.selected_files.clear()
         self.listbox_files.delete(0, END)
         self.log("Cleared file list.")
 
@@ -216,31 +211,32 @@ class FileConcatenatorApp(tk.Tk):
             self.log(f"Error writing directory structure: {str(e)}")
 
     def concatenate_files(self):
-        """Perform the full concatenation process using the selected files."""
-        if not self.selected_files:
+        """Launch concatenation process in a separate thread."""
+        files = self.listbox_files.get(0, END)
+        if not files:
             messagebox.showwarning("No Files Selected", "Please add files to concatenate.")
             return
-
-        if not messagebox.askyesno("Confirm Concatenation", 
+        if not messagebox.askyesno("Confirm Concatenation",
                                    "This will create a backup of the existing master file (if any) and overwrite it. Continue?"):
             return
 
         self.log("Starting concatenation process...")
-        self.create_backup()
+        t = threading.Thread(target=self.run_concatenation, args=(files,))
+        t.start()
 
+    def run_concatenation(self, files):
+        file_io_utils.create_backup(self.master_filename, self.log)
         try:
             open(self.master_filename, 'w').close()
             self.log("Cleared existing master file.")
         except Exception as e:
-            self.log(f"Error clearing master file: {str(e)}")
+            self.log(f"Error clearing master file: {e}")
             return
-
-        self.write_directory_structure()
-
-        for file in self.selected_files:
-            content = self.load_file(file)
+        file_io_utils.write_directory_structure(self.master_filename, files, self.log)
+        for file in files:
+            content = file_io_utils.load_file(file, self.log)
             if content is not None:
-                self.append_to_master_file(file, content)
+                file_io_utils.append_to_master(self.master_filename, file, content, self.log)
         self.log("Concatenation process completed.")
         messagebox.showinfo("Completed", f"Files have been concatenated into {self.master_filename}.")
 
@@ -299,7 +295,6 @@ class FileConcatenatorApp(tk.Tk):
 
     def on_tree_item_double_click(self, event):
         """Toggle file inclusion when a user double-clicks a file node."""
-        # Get the item that was double-clicked.
         selected_items = self.tree_files.selection()
         if not selected_items:
             return
@@ -308,23 +303,21 @@ class FileConcatenatorApp(tk.Tk):
         if not path or os.path.isdir(path):
             return  # Only handle files
 
-        # Toggle inclusion.
-        if path in self.selected_files:
-            self.selected_files.remove(path)
-            self.log(f"Removed: {path}")
-            # Remove from listbox (if present)
+        # Toggle inclusion using the listbox as a single source.
+        current_files = self.listbox_files.get(0, END)
+        if path in current_files:
+            # Remove from listbox.
             try:
-                idx = self.listbox_files.get(0, END).index(path)
+                idx = current_files.index(path)
                 self.listbox_files.delete(idx)
             except ValueError:
                 pass
-            # Revert text (remove check mark) and tag.
+            self.log(f"Removed: {path}")
             original = self.tree_item_original_text.get(item, "")
             self.tree_files.item(item, text=original, tags=())
         else:
-            self.selected_files.append(path)
-            self.log(f"Added: {path}")
             self.listbox_files.insert(END, path)
+            self.log(f"Added: {path}")
             original = self.tree_item_original_text.get(item, "")
             self.tree_files.item(item, text=f"{original} ✓", tags=("selected",))
             self.tree_files.tag_configure("selected", background="lightblue")

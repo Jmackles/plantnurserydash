@@ -11,7 +11,7 @@ export const fetchCustomers = async (): Promise<Customer[]> => {
 };
 
 export const fetchCustomerById = async (id: number): Promise<Customer> => {
-    const response = await fetch(`/api/customers/${id}`);
+    const response = await fetch(`/api/customers?id=${id}`);
     if (!response.ok) {
         throw new Error('Failed to fetch customer');
     }
@@ -50,6 +50,22 @@ export const addCustomer = async (customer: Customer): Promise<Customer> => {
     } finally {
         isCustomerRequestInProgress = false;
     }
+};
+
+export const updateCustomer = async (customer: Customer): Promise<Customer> => {
+    const response = await fetch('/api/customers', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(customer)
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to update customer');
+    }
+
+    return response.json();
 };
 
 export const addWantListEntry = async (wantListEntry: WantList): Promise<WantList> => {

@@ -4,62 +4,7 @@ import Link from 'next/link';
 import CustomerSearchFilterPanel from '../components/shared/CustomerSearchFilterPanel';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
 import { Customer, Plant } from '../lib/types';
-
-const fetchCustomers = async () => {
-    const response = await fetch('/api/customers');
-    console.log('Fetching customers from:', response.url);
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error fetching customers:', response.status, errorText);
-        throw new Error(errorText || 'Failed to fetch customers');
-    }
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-        return response.json();
-    } else {
-        throw new Error('Unexpected response format');
-    }
-};
-
-const addCustomer = async (customer: Omit<Customer, 'id'>) => {
-    const response = await fetch('/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(customer)
-    });
-    console.log('Adding customer to:', response.url);
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error adding customer:', response.status, errorText);
-        throw new Error(errorText || 'Failed to add customer');
-    }
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-        return response.json();
-    } else {
-        throw new Error('Unexpected response format');
-    }
-};
-
-const updateCustomer = async (customer: Customer) => {
-    const response = await fetch('/api/customers', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(customer)
-    });
-    console.log('Updating customer at:', response.url);
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error updating customer:', response.status, errorText);
-        throw new Error(errorText || 'Failed to update customer');
-    }
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-        return response.json();
-    } else {
-        throw new Error('Unexpected response format');
-    }
-};
+import { fetchCustomers, addCustomer, updateCustomer } from '../lib/api';
 
 const Dashboard = () => {
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -69,19 +14,20 @@ const Dashboard = () => {
     const [isAdding, setIsAdding] = useState(false);
     const [isFilterPanelVisible, setIsFilterPanelVisible] = useState(false); // Set to false to hide by default
 
+    const refreshCustomers = async () => {
+        try {
+            const data = await fetchCustomers();
+            const validCustomers = data.filter((customer: Customer) => 
+                customer && customer.id && customer.first_name && customer.last_name
+            );
+            setCustomers(validCustomers);
+        } catch (error) {
+            console.error('Error refreshing customers:', error);
+        }
+    };
+
     useEffect(() => {
-        fetchCustomers()
-            .then((data) => {
-                // Filter out invalid customer data
-                const validCustomers = data.filter((customer: Customer) => 
-                    customer && customer.id && customer.first_name && customer.last_name && customer.phone && customer.email
-                );
-                setCustomers(validCustomers);
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                setCustomers([]);
-            });
+        refreshCustomers();
     }, []);
 
     const filteredCustomers = customers.filter((customer) => {
@@ -99,40 +45,22 @@ const Dashboard = () => {
         }
     });
 
-    const handleAddCustomer = async (newCustomer: Omit<Customer, 'id'>, wantList?: { initial: string, notes: string, plants: Plant[] }) => {
+    const handleCustomerSave = async (customer: Customer, wantList?: { initial: string, notes: string, plants: Plant[] }) => {
         try {
-            const addedCustomer = await addCustomer(newCustomer);
-            
-            if (wantList) {
-                // Create want list for the new customer
-                await fetch('/api/want-list', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        customer_id: addedCustomer.id,
-                        ...wantList
-                    }),
-                });
-            }
-            
-            setCustomers((prevCustomers) => [...prevCustomers, addedCustomer]);
-            setIsAdding(false);
-        } catch (error: any) {
-            if (error.message.includes('A customer with this phone number or email already exists')) {
-                alert('A customer with this phone number or email already exists.');
+            if (customer.id) {
+                // Update existing customer
+                const updatedCustomer = await updateCustomer(customer);
+                await refreshCustomers(); // Refresh the full list
+                setSelectedCustomer(null);
             } else {
-                console.error('Error adding customer:', error);
-                alert('Failed to add customer.');
+                // Add new customer
+                const newCustomer = await addCustomer(customer);
+                await refreshCustomers(); // Refresh the full list
+                setIsAdding(false);
             }
-        }
-    };
 
-    const handleSaveCustomer = async (customer: Customer, wantList?: { initial: string, notes: string, plants: Plant[] }) => {
-        try {
-            const updatedCustomer = await updateCustomer(customer);
-            
             if (wantList) {
-                // Create want list for the existing customer
+                // Create want list for the customer
                 await fetch('/api/want-list', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -142,14 +70,9 @@ const Dashboard = () => {
                     }),
                 });
             }
-            
-            setCustomers((prevCustomers) =>
-                prevCustomers.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c))
-            );
-            setSelectedCustomer(null);
         } catch (error) {
-            console.error('Error updating customer:', error);
-            // Optionally add user feedback here
+            console.error('Error saving customer:', error);
+            throw error; // Re-throw to be handled by the modal
         }
     };
 
@@ -215,7 +138,7 @@ const Dashboard = () => {
                 <CustomerInteractionModal
                     customer={selectedCustomer}
                     onClose={() => setSelectedCustomer(null)}
-                    onSave={handleSaveCustomer}
+                    onSave={handleCustomerSave}
                 />
             )}
             {isAdding && (
@@ -225,7 +148,7 @@ const Dashboard = () => {
                         console.log('Closing Add New Customer modal');
                         setIsAdding(false);
                     }}
-                    onSave={handleAddCustomer}
+                    onSave={handleCustomerSave}
                 />
             )}
         </main>

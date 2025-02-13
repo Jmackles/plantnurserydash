@@ -62,3 +62,5 @@ unmatchedImages.json.old
 unmatchedPlants.json.old
 png.complete
 .cursorignore
+app/components/shared/CustomerInteractionModal.tsx
+master.txt

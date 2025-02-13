@@ -17,8 +17,7 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
         first_name: customer?.first_name || '',
         last_name: customer?.last_name || '',
         phone: customer?.phone || '',
-        email: customer?.email || '',
-        notes: customer?.notes || ''
+        email: customer?.email || ''
     });
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -118,16 +117,7 @@ const CustomerInteractionModal: React.FC<CustomerInteractionModalProps> = ({
                             disabled={isLoading}
                         />
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Notes</label>
-                        <textarea
-                            name="notes"
-                            value={editedCustomer.notes}
-                            onChange={handleChange}
-                            className="input-field"
-                            disabled={isLoading}
-                        ></textarea>
-                    </div>
+                    
                     
                     <div className="flex justify-end">
                         <button 

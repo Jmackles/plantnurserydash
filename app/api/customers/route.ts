@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const db = await openDb()
   try {
     const body = await request.json()
-    const { first_name, last_name, phone, email, notes } = body
+    const { first_name, last_name, phone, email } = body
 
     // Convert empty strings to null for UNIQUE constraint
     const phoneValue = phone?.trim() || null
@@ -61,8 +61,8 @@ export async function POST(request: Request) {
     }
 
     const result = await db.run(
-      'INSERT INTO customers (first_name, last_name, phone, email, notes) VALUES (?, ?, ?, ?, ?)',
-      [first_name, last_name, phoneValue, emailValue, notes]
+      'INSERT INTO customers (first_name, last_name, phone, email) VALUES (?, ?, ?, ?)',
+      [first_name, last_name, phoneValue, emailValue]
     )
     
     const newCustomer = await db.get('SELECT * FROM customers WHERE id = ?', [result.lastID])
@@ -86,16 +86,18 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   const db = await openDb()
   const body = await request.json()
-  const { id, first_name, last_name, phone, email, notes } = body
+  const { id, first_name, last_name, phone, email } = body
   try {
     await db.run(
-      'UPDATE customers SET first_name = ?, last_name = ?, phone = ?, email = ?, notes = ? WHERE id = ?',
-      [first_name, last_name, phone, email, notes, id]
+      'UPDATE customers SET first_name = ?, last_name = ?, phone = ?, email = ? WHERE id = ?',
+      [first_name, last_name, phone, email, id]
     )
     const updatedCustomer = await db.get('SELECT * FROM customers WHERE id = ?', [id])
     return NextResponse.json(updatedCustomer)
   } catch (error) {
     console.error('Error updating customer:', error)
     return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 })
+  } finally {
+    await db.close()
   }
 }

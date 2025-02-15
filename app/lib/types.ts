@@ -227,3 +227,26 @@ export interface DashboardMetrics {
     totalPlants: number;
     averagePlantsPerWantList: number;
 }
+
+export interface Documentation {
+    id: number;
+    entity_type: string;
+    entity_id: number;
+    doc_type: string;
+    content: string;
+    acknowledged?: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface EntityNote {
+    id: number;
+    notable_type: string;
+    notable_id: number;
+    note_type: string;
+    note_text: string;
+    parent_note_id?: number;
+    created_at: string;
+    dismissed_at?: string;
+    children?: EntityNote[];
+}

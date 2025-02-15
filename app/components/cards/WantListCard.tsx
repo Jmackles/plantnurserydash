@@ -1,7 +1,9 @@
 'use client';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { WantList, Customer } from '../../lib/types';
 import { Tooltip } from 'react-tooltip';
+import { DocumentationWidget } from '../shared/DocumentationWidget';
+import { useDocumentation } from '@/app/context/DocumentationContext';
 
 interface WantListCardProps {
     entry: WantList;
@@ -15,6 +17,11 @@ interface WantListCardProps {
 const WantListCard: React.FC<WantListCardProps> = ({ entry, customer, onClick, onSelect, isSelected, onStatusChange }) => {
     const [isChangingStatus, setIsChangingStatus] = React.useState(false);
     const [statusData, setStatusData] = React.useState({ initial: '', general_notes: '' });
+    const { notes, loadNotes, addNote, dismissNote } = useDocumentation();
+
+    useEffect(() => {
+        loadNotes('wantlist', entry.id);
+    }, [entry.id, loadNotes]);
 
     const handleStatusChange = (status: 'completed' | 'canceled') => {
         if (onStatusChange && statusData.initial) {
@@ -146,6 +153,27 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, customer, onClick, o
                         </div>
                     </div>
                 )}
+            </div>
+
+            <div className="mt-4 border-t pt-4">
+                <DocumentationWidget
+                    docs={notes}
+                    referenceType="wantlist"
+                    referenceId={entry.id}
+                    onAddDoc={(type) => {
+                        const text = prompt(`Enter ${type} text:`);
+                        if (text) {
+                            addNote({
+                                notable_type: 'wantlist',
+                                notable_id: entry.id,
+                                note_type: type,
+                                note_text: text
+                            });
+                        }
+                    }}
+                    onDismiss={dismissNote}
+                    className="mt-2"
+                />
             </div>
         </div>
     );

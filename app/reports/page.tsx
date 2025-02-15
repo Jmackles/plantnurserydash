@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { fetchWantListEntries } from '../../lib/api';  // Update this path
+import { fetchWantListEntries } from './../lib/api';  // Update this path
 import { WantListEntry, Plant } from '../lib/types';
 
 const Reports = () => {

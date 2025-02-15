@@ -107,3 +107,52 @@ export const fetchWantListEntries = async (): Promise<WantList[]> => {
     }
     return response.json();
 };
+
+export const fetchDocumentation = async (entityType: string, entityId: number): Promise<Documentation[]> => {
+    const response = await fetch(`/api/documentation?entity_type=${entityType}&entity_id=${entityId}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch documentation');
+    }
+    return response.json();
+};
+
+export const addDocumentation = async (doc: Partial<Documentation>): Promise<Documentation> => {
+    const response = await fetch('/api/documentation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add documentation');
+    }
+
+    return response.json();
+};
+
+export const updateDocumentation = async (doc: Partial<Documentation>): Promise<Documentation> => {
+    const response = await fetch('/api/documentation', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update documentation');
+    }
+
+    return response.json();
+};
+
+export const deleteDocumentation = async (id: number): Promise<void> => {
+    const response = await fetch(`/api/documentation?id=${id}`, {
+        method: 'DELETE',
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete documentation');
+    }
+};

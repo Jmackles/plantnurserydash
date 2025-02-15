@@ -33,7 +33,7 @@ const CustomerDetails = () => {
                 setCustomer(customerData);
                 setEditData(customerData);
                 setWantLists(wantListData);
-                await loadNotes('customer', Number(id));  // Load notes when component mounts
+                await loadNotes('customer', Number(id));
             } catch (error) {
                 console.error('Error:', error);
             } finally {
@@ -47,14 +47,12 @@ const CustomerDetails = () => {
         const text = await prompt(`Enter ${type} text:`);
         if (text && customer) {
             try {
-                console.log('Adding doc:', { type, text, customerId: customer.id });
                 await addNote({
                     notable_type: 'customer',
                     notable_id: customer.id,
                     note_type: type,
                     note_text: text
                 });
-                // Reload notes after adding
                 await loadNotes('customer', customer.id);
             } catch (error) {
                 console.error('Failed to add note:', error);
@@ -167,13 +165,14 @@ const CustomerDetails = () => {
 
                 {/* Documentation Widget section */}
                 <div className="bg-white shadow-md rounded-lg p-4">
-                    <h2 className="text-xl font-bold mb-4">Notes & Documentation</h2>
+                    <h2 className="text-xl font-bold mb-4">Documentation</h2>
                     <DocumentationWidget
                         docs={notes}
                         referenceType="customer"
                         referenceId={Number(id)}
                         onAddDoc={handleAddDoc}
                         onDismiss={dismissNote}
+                        className="mt-4"
                     />
                 </div>
             </div>

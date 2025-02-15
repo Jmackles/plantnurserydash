@@ -1,224 +1,210 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { fetchWantListEntries } from './../lib/api';  // Update this path
-import { WantListEntry, Plant } from '../lib/types';
+import React, { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
 
-const Reports = () => {
-    const [wantListEntries, setWantListEntries] = useState<WantListEntry[]>([]);
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [filteredEntries, setFilteredEntries] = useState<WantListEntry[]>([]);
-    const [plantReport, setPlantReport] = useState<Record<string, { size: string; quantity: number, details: Plant }[]>>({});
-    const [sortField, setSortField] = useState<'name' | 'quantity'>('name');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-    const [error, setError] = useState<string | null>(null);
+// Dynamic imports for each chart type with loading states
+const LineChart = dynamic(
+  () => import('react-chartjs-2').then(mod => ({ default: mod.Line })),
+  { ssr: false, loading: () => <div>Loading line chart...</div> }
+);
+
+const BarChart = dynamic(
+  () => import('react-chartjs-2').then(mod => ({ default: mod.Bar })),
+  { ssr: false, loading: () => <div>Loading bar chart...</div> }
+);
+
+const PieChart = dynamic(
+  () => import('react-chartjs-2').then(mod => ({ default: mod.Pie })),
+  { ssr: false, loading: () => <div>Loading pie chart...</div> }
+);
+
+// Separate component for ChartJS registration
+const ChartJsConfig = dynamic(
+  () => import('@/app/components/charts/ChartConfig').then(mod => mod.default),
+  { ssr: false }
+);
+
+const ReportsDashboard = () => {
+    const [timeframe, setTimeframe] = useState('week');
+    const [reportType, setReportType] = useState('overview');
+    const [reportData, setReportData] = useState({
+        metrics: {
+            totalWantLists: 0,
+            pendingCount: 0,
+            completedCount: 0,
+            canceledCount: 0,
+            totalPlants: 0,
+            uniqueCustomers: 0,
+            overdueCount: 0,
+            todaysPending: 0,
+            unfulfilledPlants: 0,
+            activeWantLists: 0
+        },
+        trendData: [],
+        topPlants: [],
+        customerActivity: [],
+        pendingWantLists: [],
+        needsFollowup: [],
+        weekSummary: {
+            new_requests: 0,
+            completed: 0,
+            avg_response_time: 0,
+            completion_rate: 0
+        }
+    });
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchEntries = async () => {
+        const fetchReportData = async () => {
+            setIsLoading(true);
             try {
-                const entries = await fetchWantListEntries();
-                setWantListEntries(entries);
-            } catch (err) {
-                console.error('Error fetching want list entries:', err);
-                setError('Failed to fetch data. Please try again later.');
+                const response = await fetch(`/api/reports?type=${reportType}&timeframe=${timeframe}`);
+                if (!response.ok) throw new Error('Failed to fetch report data');
+                const data = await response.json();
+                setReportData(data);
+            } catch (error) {
+                console.error('Error fetching report data:', error);
+            } finally {
+                setIsLoading(false);
             }
         };
 
-        fetchEntries();
-    }, []);
-
-    const handleFilter = () => {
-        const filtered = wantListEntries.filter((entry) => {
-            const entryDate = new Date(entry.created_at);
-            return (!startDate || entryDate >= new Date(startDate)) && (!endDate || entryDate <= new Date(endDate));
-        });
-        setFilteredEntries(filtered);
-        generatePlantReport(filtered);
-    };
-
-    const generatePlantReport = (entries: WantListEntry[]) => {
-        const report: Record<string, { size: string; quantity: number, details: Plant }[]> = {};
-
-        entries.forEach((entry) => {
-            entry.plants.forEach((plant) => {
-                const plantName = plant.name.toLowerCase();
-                if (!report[plantName]) {
-                    report[plantName] = [];
-                }
-                const existingPlant = report[plantName].find((p) => p.size === plant.size);
-                const plantDetails: Plant = {
-                    ...plant,
-                    botanical: plant.botanical,
-                    price: plant.price,
-                    matureSize: plant.matureSize,
-                    growthRate: plant.growthRate,
-                    deerResistance: plant.deerResistance,
-                    sun: plant.sun,
-                    shade: plant.shade,
-                    native: plant.native
-                };
-                if (existingPlant) {
-                    existingPlant.quantity += plant.quantity;
-                } else {
-                    report[plantName].push({ size: plant.size, quantity: plant.quantity, details: plantDetails });
-                }
-            });
-        });
-
-        setPlantReport(report);
-    };
-
-    const handlePrint = () => {
-        const reportContent = document.getElementById('report-content');
-        if (reportContent) {
-            const printWindow = window.open('', '_blank');
-            if (printWindow) {
-                printWindow.document.write('<html><head><title>Plant Report</title></head><body>');
-                printWindow.document.write(reportContent.outerHTML);
-                printWindow.document.write('</body></html>');
-                printWindow.document.close();
-                printWindow.print();
-            }
-        }
-    };
-
-    const handleExportCSV = () => {
-        const csvRows = [
-            ['Plant Name', 'Size', 'Quantity Requested', 'Botanical Name', 'Price', 'Mature Size', 'Growth Rate', 'Deer Resistance', 'Sun', 'Shade', 'Native'],
-            ...Object.entries(plantReport).flatMap(([plantName, sizes]) =>
-                sizes.map((sizeInfo) => [
-                    plantName,
-                    sizeInfo.size,
-                    sizeInfo.quantity,
-                    sizeInfo.details.botanical,
-                    sizeInfo.details.price,
-                    sizeInfo.details.matureSize,
-                    sizeInfo.details.growthRate,
-                    sizeInfo.details.deerResistance,
-                    sizeInfo.details.sun === 1 ? 'Yes' : 'No',
-                    sizeInfo.details.shade === 1 ? 'Yes' : 'No',
-                    sizeInfo.details.native === 1 ? 'Yes' : 'No'
-                ])
-            ),
-        ];
-
-        const csvContent = csvRows.map((row) => row.join(',')).join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'plant_report.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-
-    const sortedPlantReport = Object.entries(plantReport).sort(([nameA, sizesA], [nameB, sizesB]) => {
-        if (sortField === 'name') {
-            return sortOrder === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
-        } else {
-            const totalQuantityA = sizesA.reduce((sum, size) => sum + size.quantity, 0);
-            const totalQuantityB = sizesB.reduce((sum, size) => sum + size.quantity, 0);
-            return sortOrder === 'asc' ? totalQuantityA - totalQuantityB : totalQuantityB - totalQuantityA;
-        }
-    });
-
-    if (error) {
-        return <div className="p-6 max-w-7xl mx-auto text-red-600">{error}</div>;
-    }
+        fetchReportData();
+    }, [timeframe, reportType]);
 
     return (
-        <main className="p-6 max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-sage-700 mb-8">Reports</h1>
-            <div className="flex flex-wrap gap-4 mb-4">
-                <div>
-                    <label className="form-label">Start Date:</label>
-                    <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="input-field"
-                    />
+        <Suspense fallback={<div>Loading dashboard...</div>}>
+            <div className="p-6 max-w-7xl mx-auto">
+                <ChartJsConfig />
+                
+                {/* Simplified, more focused header */}
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold mb-4">Want List Operations</h1>
+                    <div className="flex gap-4 mb-6">
+                        <select
+                            value={timeframe}
+                            onChange={(e) => setTimeframe(e.target.value)}
+                            className="input-field"
+                        >
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label className="form-label">End Date:</label>
-                    <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="input-field"
-                    />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Urgent Action Items */}
+                    <div className="bg-white rounded-lg shadow p-4 col-span-2">
+                        <h3 className="text-lg font-semibold mb-4">Needs Attention</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-red-50 p-4 rounded-lg">
+                                <p className="text-sm text-red-600">Overdue Want Lists (>3 days)</p>
+                                <p className="text-2xl font-bold text-red-800">
+                                    {reportData.metrics.overdueCount}
+                                </p>
+                                <Link href="/wantlistdashboard?filter=overdue" 
+                                    className="text-sm text-red-600 hover:underline">
+                                    View all overdue
+                                </Link>
+                            </div>
+                            <div className="bg-yellow-50 p-4 rounded-lg">
+                                <p className="text-sm text-yellow-600">Today's Pending</p>
+                                <p className="text-2xl font-bold text-yellow-800">
+                                    {reportData.metrics.todaysPending}
+                                </p>
+                                <Link href="/wantlistdashboard?filter=today" 
+                                    className="text-sm text-yellow-600 hover:underline">
+                                    View today's list
+                                </Link>
+                            </div>
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <p className="text-sm text-blue-600">Unfulfilled Plants</p>
+                                <p className="text-2xl font-bold text-blue-800">
+                                    {reportData.metrics.unfulfilledPlants}
+                                </p>
+                                <span className="text-sm text-blue-600">
+                                    Across {reportData.metrics.activeWantLists} lists
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Most Requested Plants - Actionable Version */}
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <h3 className="text-lg font-semibold mb-4">High Demand Plants</h3>
+                        <div className="space-y-3">
+                            {reportData.topPlants.map((plant, idx) => (
+                                <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                                    <div>
+                                        <p className="font-medium">{plant.name}</p>
+                                        <p className="text-sm text-gray-600">
+                                            {plant.size ? `Size: ${plant.size}` : 'Various Sizes'}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold">{plant.total_quantity} requested</p>
+                                        <p className="text-sm text-gray-600">
+                                            {plant.unique_customers} customers waiting
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Customer Follow-ups Needed */}
+                    <div className="bg-white rounded-lg shadow p-4">
+                        <h3 className="text-lg font-semibold mb-4">Need Follow-up</h3>
+                        <div className="space-y-3">
+                            {reportData.needsFollowup.map((item, idx) => (
+                                <div key={idx} className="p-3 bg-gray-50 rounded">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-medium">{item.customer_name}</p>
+                                            <p className="text-sm text-gray-600">
+                                                Want List #{item.want_list_id}
+                                            </p>
+                                        </div>
+                                        <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                            {item.days_waiting} days
+                                        </span>
+                                    </div>
+                                    <div className="mt-2 text-sm text-gray-600">
+                                        {item.items_summary}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-                <div className="flex items-end">
-                    <button onClick={handleFilter} className="btn-primary mr-2">
-                        Filter
-                    </button>
-                    <button onClick={handlePrint} className="btn-secondary mr-2">
-                        Print
-                    </button>
-                    <button onClick={handleExportCSV} className="btn-secondary">
-                        Export CSV
-                    </button>
+
+                {/* Weekly Performance Summary */}
+                <div className="mt-6 bg-white rounded-lg shadow p-4">
+                    <h3 className="text-lg font-semibold mb-4">This Week's Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="p-3 bg-gray-50 rounded">
+                            <p className="text-sm text-gray-600">New Requests</p>
+                            <p className="text-xl font-bold">{reportData.weekSummary.new_requests}</p>
+                        </div>
+                        <div className="p-3 bg-gray-50 rounded">
+                            <p className="text-sm text-gray-600">Completed</p>
+                            <p className="text-xl font-bold">{reportData.weekSummary.completed}</p>
+                        </div>
+                        <div className="p-3 bg-gray-50 rounded">
+                            <p className="text-sm text-gray-600">Avg Response Time</p>
+                            <p className="text-xl font-bold">{reportData.weekSummary.avg_response_time}h</p>
+                        </div>
+                        <div className="p-3 bg-gray-50 rounded">
+                            <p className="text-sm text-gray-600">Completion Rate</p>
+                            <p className="text-xl font-bold">{reportData.weekSummary.completion_rate}%</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div className="mb-4">
-                <label className="form-label">Sort by:</label>
-                <select value={sortField} onChange={(e) => setSortField(e.target.value as 'name' | 'quantity')} className="input-field">
-                    <option value="name">Plant Name</option>
-                    <option value="quantity">Quantity</option>
-                </select>
-                <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')} className="input-field ml-2">
-                    <option value="asc">Ascending</option>
-                    <option value="desc">Descending</option>
-                </select>
-            </div>
-            <div id="report-content" className="overflow-x-auto">
-                <table className="min-w-full bg-white shadow-md rounded-lg">
-                    <thead>
-                        <tr>
-                            <th className="py-2 px-4 border-b">Plant Name</th>
-                            <th className="py-2 px-4 border-b">Size</th>
-                            <th className="py-2 px-4 border-b">Quantity Requested</th>
-                            <th className="py-2 px-4 border-b">Botanical Name</th>
-                            <th className="py-2 px-4 border-b">Price</th>
-                            <th className="py-2 px-4 border-b">Mature Size</th>
-                            <th className="py-2 px-4 border-b">Growth Rate</th>
-                            <th className="py-2 px-4 border-b">Deer Resistance</th>
-                            <th className="py-2 px-4 border-b">Sun</th>
-                            <th className="py-2 px-4 border-b">Shade</th>
-                            <th className="py-2 px-4 border-b">Native</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sortedPlantReport.length > 0 ? (
-                            sortedPlantReport.map(([plantName, sizes]) =>
-                                sizes.map((sizeInfo, index) => (
-                                    <tr key={`${plantName}-${sizeInfo.size}-${index}`}>
-                                        <td className="py-2 px-4 border-b">{plantName.charAt(0).toUpperCase() + plantName.slice(1)}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.size}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.quantity}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.details.botanical}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.details.price}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.details.matureSize}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.details.growthRate}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.details.deerResistance}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.details.sun === 1 ? 'Yes' : 'No'}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.details.shade === 1 ? 'Yes' : 'No'}</td>
-                                        <td className="py-2 px-4 border-b">{sizeInfo.details.native === 1 ? 'Yes' : 'No'}</td>
-                                    </tr>
-                                ))
-                            )
-                        ) : (
-                            <tr>
-                                <td colSpan={11} className="py-4 text-center text-gray-500">
-                                    No data available for the selected range.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </main>
+        </Suspense>
     );
 };
 
-export default Reports;
+export default ReportsDashboard;

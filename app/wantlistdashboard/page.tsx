@@ -1,19 +1,23 @@
 'use client'
-
 import React, { useState, useEffect } from 'react';
 import { WantList, Customer, Plant } from './../lib/types';
 import { fetchWantListEntries, fetchCustomers, addCustomer, addWantListEntry } from './../lib/api';
 import WantListCard from './../components/cards/WantListCard';
 import CustomerInteractionModal from '../components/shared/CustomerInteractionModal';
-import WantListEntryModal from '../components/shared/WantListEntryModal';  // Add this import
+import WantListEntryModal from '../components/shared/WantListEntryModal';
 import BulkActionsBar from '../components/shared/BulkActionsBar';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+function formatDate(dateString: string) {
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+}
+
 const WantListDashboard = () => {
     const [wantListEntries, setWantListEntries] = useState<WantList[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
-    const [searchQuery, setSearchQuery] = useState(''); // Add this line
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedEntry, setSelectedEntry] = useState<WantList | null>(null);
     const [editData, setEditData] = useState<WantList | null>(null);
     const [isAdding, setIsAdding] = useState(false);
@@ -22,7 +26,7 @@ const WantListDashboard = () => {
         id: 0,
         customer_id: 0,
         initial: '',
-        general_notes: '', // Added general_notes field
+        general_notes: '',
         notes: '',
         status: 'pending',
         spoken_to: '',
@@ -43,23 +47,22 @@ const WantListDashboard = () => {
     const [filterStatus, setFilterStatus] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    const [showNewEntryModal, setShowNewEntryModal] = useState(false);  // Add this state
+    const [showNewEntryModal, setShowNewEntryModal] = useState(false);
 
     const fetchEntries = async () => {
         try {
-            const response = await fetchWantListEntries();
-            const entries = response.entries || response;
-            
-            if (Array.isArray(entries)) {
-                const sortedEntries = entries.sort((a, b) => new Date(b.created_at_text).getTime() - new Date(a.created_at_text).getTime());
-                setWantListEntries(sortedEntries);
-            } else {
-                console.warn('Unexpected data format:', response);
-                setWantListEntries([]);
+            const response = await fetch('/api/want-list');
+            if (!response.ok) {
+                throw new Error('Failed to fetch want lists');
             }
+            const data = await response.json();
+            console.log('Fetched want lists:', data);
+            
+            // Fix: use setWantListEntries instead of setWantLists
+            setWantListEntries(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error fetching entries:', error);
-            setWantListEntries([]);
+            setWantListEntries([]); // Fix: use setWantListEntries here too
         }
     };
 
@@ -72,7 +75,6 @@ const WantListDashboard = () => {
         }
     };
 
-    // Load saved state from localStorage on component mount
     useEffect(() => {
         const savedState = localStorage.getItem('wantListState');
         if (savedState) {
@@ -87,7 +89,6 @@ const WantListDashboard = () => {
         fetchCustomerList();
     }, []);
 
-    // Save state to localStorage whenever relevant states change
     useEffect(() => {
         const state = {
             currentPage,
@@ -98,7 +99,6 @@ const WantListDashboard = () => {
         localStorage.setItem('wantListState', JSON.stringify(state));
     }, [currentPage, searchQuery, filterStatus]);
 
-    // Add event listener for scroll
     useEffect(() => {
         const handleScroll = () => {
             const state = JSON.parse(localStorage.getItem('wantListState') || '{}');
@@ -230,7 +230,7 @@ const WantListDashboard = () => {
             }
 
             const entryToSave = {
-                customer_id: customerToUse.id,  // Using the ID directly
+                customer_id: customerToUse.id,
                 initial: wantListEntry.initial,
                 general_notes: wantListEntry.general_notes || '',
                 status: 'pending',
@@ -368,7 +368,7 @@ const WantListDashboard = () => {
 
     const filteredEntries = wantListEntries.filter(entry => {
         const matchesSearchQuery = entry.initial.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (entry.general_notes || '').toLowerCase().includes(searchQuery.toLowerCase()) || // Changed from notes to general_notes
+            (entry.general_notes || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             customers.find(c => c.id === entry.customer_id)?.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             customers.find(c => c.id === entry.customer_id)?.last_name.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -384,29 +384,32 @@ const WantListDashboard = () => {
     return (
         <main className="p-6 max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-sage-800">Want List Dashboard</h1>
+                <h1 className="text-2xl font-bold">Want List Dashboard</h1>
                 <button
-                    onClick={() => setShowNewEntryModal(true)}  // Modified this line
+                    onClick={() => setShowNewEntryModal(true)}
                     className="btn-primary"
+                    suppressHydrationWarning
                 >
                     Add New Want List Entry
                 </button>
             </div>
 
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between gap-4 mb-6">
                 <input
                     type="text"
                     placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="input-field"
+                    suppressHydrationWarning
                 />
                 <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
                     className="input-field"
+                    suppressHydrationWarning
                 >
-                    <option value="">All</option>
+                    <option value="">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="completed">Completed</option>
                     <option value="canceled">Canceled</option>
@@ -425,7 +428,7 @@ const WantListDashboard = () => {
                 </div>
             )}
 
-            <div className="grid gap-6 mb-20">
+            <div className="space-y-4">
                 {paginatedEntries.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-lg shadow">
                         <p className="text-sage-600">No want list entries found.</p>
@@ -434,12 +437,11 @@ const WantListDashboard = () => {
                     paginatedEntries.map(entry => {
                         const customer = customers.find(c => c.id === entry.customer_id);
                         return (
-                            <WantListCard 
-                                key={entry.id} 
-                                entry={entry} 
-                                customer={customer}
+                            <WantListCard
+                                key={entry.id}
+                                entry={entry}
+                                customer={customer || null}
                                 onClick={() => setSelectedEntry(entry)}
-                                onStatusChange={(status, data) => handleStatusChange(entry.id, status, data)}
                                 onSelect={(selected) => {
                                     if (selected) {
                                         setSelectedEntries(prev => [...prev, entry.id]);
@@ -448,6 +450,7 @@ const WantListDashboard = () => {
                                     }
                                 }}
                                 isSelected={selectedEntries.includes(entry.id)}
+                                onStatusChange={(status, data) => handleStatusChange(entry.id, status, data)}
                             />
                         );
                     })
@@ -459,6 +462,7 @@ const WantListDashboard = () => {
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
                     className="btn-secondary"
+                    suppressHydrationWarning
                 >
                     Previous
                 </button>
@@ -467,12 +471,13 @@ const WantListDashboard = () => {
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
                     className="btn-secondary"
+                    suppressHydrationWarning
                 >
                     Next
                 </button>
             </div>
 
-            {showNewEntryModal && (  // Add this modal
+            {showNewEntryModal && (
                 <WantListEntryModal
                     onClose={() => setShowNewEntryModal(false)}
                     onSave={async (customer, wantList) => {

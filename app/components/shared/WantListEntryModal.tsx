@@ -1,46 +1,45 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { Customer, WantList, Plant } from '../../lib/types';
 import { fetchCustomers, addCustomer } from '../../lib/api';
 import CustomerInteractionModal from './CustomerInteractionModal';  // Add this import
 
 interface WantListEntryModalProps {
-    customer?: Customer | null; // Optional - if provided, skip customer selection
+    customer: Customer | null;
     onClose: () => void;
-    onSave: (customer: Customer, wantList: WantList) => Promise<void>;
+    onSave: (data: { initial: string; notes: string; plants: Plant[] }) => Promise<void>;
 }
 
 const WantListEntryModal: React.FC<WantListEntryModalProps> = ({
-    customer: initialCustomer,
+    customer,
     onClose,
     onSave
 }) => {
-    const [step, setStep] = useState<'customer' | 'wantlist'>(initialCustomer ? 'wantlist' : 'customer');
+    const [step, setStep] = useState<'customer' | 'wantlist'>(customer ? 'wantlist' : 'customer');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(initialCustomer || null);
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(customer || null);
     const [isNewCustomer, setIsNewCustomer] = useState(false);
     const [showCustomerModal, setShowCustomerModal] = useState(false);
     
-    const [wantListData, setWantListData] = useState<WantList>({
-        id: 0,
-        customer_id: initialCustomer?.id || 0,
-        initial: '',
-        notes: '',
-        status: 'pending',
-        plants: [],
-        general_notes: '',
-        spoken_to: '',
-        created_at_text: new Date().toISOString(),
-        closed_by: ''
+    const [initial, setInitial] = useState('');
+    const [notes, setNotes] = useState('');
+    const [plants, setPlants] = useState<Plant[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [currentPlant, setCurrentPlant] = useState({
+        name: '',
+        size: '',
+        quantity: 1,
+        status: 'pending'
     });
 
     useEffect(() => {
-        if (!initialCustomer) {
+        if (!customer) {
             fetchCustomers().then(setCustomers).catch(console.error);
         }
-    }, [initialCustomer]);
+    }, [customer]);
 
     const handleCustomerSearch = (query: string) => {
         setSearchQuery(query);
@@ -78,76 +77,64 @@ const WantListEntryModal: React.FC<WantListEntryModalProps> = ({
         }
     };
 
-    const handleAddPlant = () => {
-        setWantListData(prev => ({
-            ...prev,
-            plants: [
-                ...prev.plants,
-                {
-                    id: Date.now(),
-                    name: '',
-                    size: '',
-                    quantity: 1,
-                    status: 'pending',
-                    plant_catalog_id: 0,
-                    requested_at: new Date().toISOString(),
-                    fulfilled_at: ''
-                }
-            ]
-        }));
+    const handleAddPlant = (e: React.FormEvent) => {
+        e.preventDefault(); // Prevent form submission
+        if (!currentPlant.name || !currentPlant.quantity) {
+            alert('Please enter both plant name and quantity');
+            return;
+        }
+
+        setPlants(prevPlants => [...prevPlants, {
+            ...currentPlant,
+            id: 0,
+            want_list_entry_id: 0,
+            plant_catalog_id: 0,
+            requested_at: new Date().toISOString(),
+            fulfilled_at: '',
+            status: 'pending'
+        }]);
+
+        // Reset the current plant form
+        setCurrentPlant({
+            name: '',
+            size: '',
+            quantity: 1,
+            status: 'pending'
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedCustomer) {
-            setError('No customer selected');
+        if (!initial.trim()) {
+            alert('Please enter your initials');
             return;
         }
 
-        if (!wantListData.initial) {
-            setError('Initial is required');
+        if (plants.length === 0) {
+            alert('Please add at least one plant');
             return;
         }
 
-        if (!wantListData.plants.length) {
-            setError('At least one plant is required');
-            return;
-        }
-
-        // Validate plants
-        const invalidPlants = wantListData.plants.filter(p => !p.name || p.quantity < 1);
-        if (invalidPlants.length > 0) {
-            setError('All plants must have a name and quantity');
-            return;
-        }
-
-        setIsLoading(true);
-        setError(null);
-
+        setLoading(true);
         try {
-            const wantListWithCustomer = {
-                ...wantListData,
-                customer_id: selectedCustomer.id,
-                plants: wantListData.plants.map(plant => ({
-                    ...plant,
-                    quantity: parseInt(plant.quantity.toString()),
-                    status: 'pending'
-                }))
-            };
-
-            await onSave(selectedCustomer, wantListWithCustomer);
+            await onSave({
+                initial: initial.trim(),
+                notes: notes.trim(),
+                plants
+            });
+            onClose();
         } catch (error) {
             console.error('Error saving want list:', error);
-            setError(error.message || 'Failed to save want list');
+            alert('Failed to save want list');
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
     return (
         <div className="modal-overlay">
             <div className="modal-content max-w-4xl">
-                {step === 'customer' && !initialCustomer ? (
+                {step === 'customer' && !customer ? (
                     <div>
                         <h2 className="text-xl font-bold mb-4">Select or Create Customer</h2>
                         <div className="mb-4">
@@ -194,15 +181,17 @@ const WantListEntryModal: React.FC<WantListEntryModalProps> = ({
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit}>
-                        <h2 className="text-xl font-bold mb-4">Create Want List Entry</h2>
+                        <h2 className="text-xl font-bold mb-4">
+                            New Want List for {customer?.first_name} {customer?.last_name}
+                        </h2>
                         {error && <div className="error-message mb-4">{error}</div>}
                         
                         <div className="mb-4">
                             <label className="block text-sm font-medium text-gray-700">Initial</label>
                             <input
                                 type="text"
-                                value={wantListData.initial}
-                                onChange={(e) => setWantListData(prev => ({ ...prev, initial: e.target.value }))}
+                                value={initial}
+                                onChange={(e) => setInitial(e.target.value)}
                                 className="input-field"
                                 required
                             />
@@ -211,50 +200,70 @@ const WantListEntryModal: React.FC<WantListEntryModalProps> = ({
                         <div className="mb-4">
                             <label className="block text-sm font-medium text-gray-700">Notes</label>
                             <textarea
-                                value={wantListData.notes}
-                                onChange={(e) => setWantListData(prev => ({ ...prev, notes: e.target.value }))}
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
                                 className="input-field"
                             />
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700">Plants</label>
-                            {wantListData.plants.map((plant, index) => (
-                                <div key={plant.id} className="flex gap-2 mb-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Plant name"
-                                        value={plant.name}
-                                        onChange={(e) => {
-                                            const newPlants = [...wantListData.plants];
-                                            newPlants[index] = { ...plant, name: e.target.value };
-                                            setWantListData(prev => ({ ...prev, plants: newPlants }));
-                                        }}
-                                        className="input-field flex-1"
-                                    />
-                                    <input
-                                        type="number"
-                                        value={plant.quantity}
-                                        onChange={(e) => {
-                                            const newPlants = [...wantListData.plants];
-                                            newPlants[index] = { ...plant, quantity: parseInt(e.target.value) };
-                                            setWantListData(prev => ({ ...prev, plants: newPlants }));
-                                        }}
-                                        className="input-field w-24"
-                                        min="1"
-                                    />
-                                </div>
-                            ))}
-                            <button
-                                type="button"
-                                onClick={handleAddPlant}
-                                className="btn-secondary mt-2"
-                            >
-                                Add Plant
-                            </button>
+                            <h3 className="text-lg font-medium mb-2">Add Plants</h3>
+                            <div className="flex gap-2 mb-2">
+                                <input
+                                    type="text"
+                                    placeholder="Plant name"
+                                    value={currentPlant.name}
+                                    onChange={(e) => setCurrentPlant({...currentPlant, name: e.target.value})}
+                                    className="input-field flex-1"
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Size"
+                                    value={currentPlant.size}
+                                    onChange={(e) => setCurrentPlant({...currentPlant, size: e.target.value})}
+                                    className="input-field w-24"
+                                />
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={currentPlant.quantity}
+                                    onChange={(e) => setCurrentPlant({
+                                        ...currentPlant, 
+                                        quantity: parseInt(e.target.value) || 1
+                                    })}
+                                    className="input-field w-20"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAddPlant}
+                                    className="btn-secondary"
+                                >
+                                    Add Plant
+                                </button>
+                            </div>
+
+                            {/* Display added plants */}
+                            <div className="mt-4 space-y-2">
+                                {plants.map((plant, index) => (
+                                    <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                        <div>
+                                            <span className="font-medium">{plant.name}</span>
+                                            {plant.size && <span className="ml-2 text-gray-600">({plant.size})</span>}
+                                            <span className="ml-4">Qty: {plant.quantity}</span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPlants(plants.filter((_, i) => i !== index))}
+                                            className="text-red-600 hover:text-red-800"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 mt-6">
                             <button
                                 type="button"
                                 onClick={onClose}
@@ -268,7 +277,7 @@ const WantListEntryModal: React.FC<WantListEntryModalProps> = ({
                                 className="btn-primary"
                                 disabled={isLoading}
                             >
-                                {isLoading ? 'Saving...' : 'Save'}
+                                {isLoading ? 'Saving...' : 'Save Want List'}
                             </button>
                         </div>
                     </form>

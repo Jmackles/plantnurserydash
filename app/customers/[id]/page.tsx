@@ -7,6 +7,7 @@ import { useCustomerContext } from '@/app/context/CustomerContext';
 import DocumentationWidget from '@/app/components/shared/DocumentationWidget';
 import WantListEntryModal from '@/app/components/shared/WantListEntryModal';
 import { Tab } from '@headlessui/react';
+import WantListTabPanel from '@/app/components/shared/WantListTabPanel';
 
 const CustomerDetails = () => {
     const { id } = useParams();
@@ -19,28 +20,38 @@ const CustomerDetails = () => {
     const [showWantListModal, setShowWantListModal] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const fetchWantLists = async () => {
+        try {
+            const response = await fetch(`/api/want-list?customer_id=${id}`);
+            if (!response.ok) throw new Error('Failed to fetch want lists');
+            const data = await response.json();
+            console.log('Fetched want lists:', data); // Debug log
+            setWantLists(data);
+        } catch (error) {
+            console.error('Error fetching want lists:', error);
+            setWantLists([]);
+        }
+    };
+
     useEffect(() => {
+        if (!id) return;
+        
         const fetchData = async () => {
-            if (!id) return;
             try {
-                const [customerRes, wantListRes] = await Promise.all([
-                    fetch(`/api/customers/${id}`),
-                    fetch(`/api/want-list?customer_id=${id}`)
-                ]);
-                
+                const customerRes = await fetch(`/api/customers/${id}`);
                 const customerData = await customerRes.json();
-                const wantListData = await wantListRes.json();
                 
                 setCustomer(customerData);
                 setEditData(customerData);
-                setWantLists(wantListData);
                 await loadNotes('customer', Number(id));
+                await fetchWantLists();
             } catch (error) {
                 console.error('Error:', error);
             } finally {
                 setLoading(false);
             }
         };
+
         fetchData();
     }, [id, loadNotes]);
 
@@ -74,6 +85,43 @@ const CustomerDetails = () => {
             setIsEditing(false);
         } catch (error) {
             console.error('Error updating customer:', error);
+        }
+    };
+
+    const handleCreateWantList = async (data: { initial: string, notes: string, plants: Plant[] }) => {
+        try {
+            if (!customer) throw new Error('No customer selected');
+
+            const response = await fetch('/api/want-list', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customer_id: customer.id,
+                    initial: data.initial,
+                    general_notes: data.notes,
+                    status: 'pending',
+                    plants: data.plants.map(plant => ({
+                        name: plant.name,
+                        size: plant.size,
+                        quantity: plant.quantity,
+                        status: 'pending'
+                    }))
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to create want list');
+            }
+
+            // Refresh want lists for this customer
+            const refreshResponse = await fetch(`/api/want-list?customer_id=${customer.id}`);
+            const refreshData = await refreshResponse.json();
+            setWantLists(refreshData);
+            setShowWantListModal(false);
+        } catch (error) {
+            console.error('Error creating want list:', error);
+            alert(error instanceof Error ? error.message : 'Failed to create want list');
         }
     };
 
@@ -259,19 +307,11 @@ const CustomerDetails = () => {
                     </Tab.Panel>
 
                     <Tab.Panel>
-                        {/* Want Lists Panel */}
-                        <div className="bg-white rounded-lg shadow p-4">
-                            <div className="flex justify-between mb-4">
-                                <h2 className="text-xl font-bold">Want Lists</h2>
-                                <button 
-                                    onClick={() => setShowWantListModal(true)}
-                                    className="btn-primary"
-                                >
-                                    New Want List
-                                </button>
-                            </div>
-                            {/* ...existing want lists... */}
-                        </div>
+                        <WantListTabPanel
+                            wantLists={wantLists}
+                            onNewWantList={() => setShowWantListModal(true)}
+                            customerId={Number(id)}
+                        />
                     </Tab.Panel>
 
                     <Tab.Panel>
@@ -337,6 +377,15 @@ const CustomerDetails = () => {
                     </Tab.Panel>
                 </Tab.Panels>
             </Tab.Group>
+
+            {/* Want List Creation Modal */}
+            {showWantListModal && (
+                <WantListEntryModal
+                    customer={customer}
+                    onClose={() => setShowWantListModal(false)}
+                    onSave={handleCreateWantList}
+                />
+            )}
 
             {/* ...existing modals... */}
         </div>

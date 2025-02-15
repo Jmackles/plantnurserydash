@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { WantList, Customer } from '../../lib/types';
 import { Tooltip } from 'react-tooltip';
 import { DocumentationWidget } from '../shared/DocumentationWidget';
@@ -18,6 +18,11 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, customer, onClick, o
     const [isChangingStatus, setIsChangingStatus] = React.useState(false);
     const [statusData, setStatusData] = React.useState({ initial: '', general_notes: '' });
     const { notes, loadNotes, addNote, dismissNote } = useDocumentation();
+
+    // Filter flags for quick access
+    const flags = useMemo(() => {
+        return notes.filter(note => note.note_type === 'flag' && !note.dismissed_at);
+    }, [notes]);
 
     useEffect(() => {
         loadNotes('wantlist', entry.id);
@@ -60,10 +65,9 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, customer, onClick, o
     return (
         <div className={`relative bg-white rounded-lg shadow-md transition-all duration-300 p-4 
             ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:shadow-lg'} ${getCardStyle(status)}`}
-            onMouseEnter={() => setIsChangingStatus(true)}
-            onMouseLeave={() => setIsChangingStatus(false)}
         >
-            <div className="absolute top-2 left-2">
+            {/* Checkbox section */}
+            <div className="absolute top-2 left-2 flex items-center gap-2">
                 <input
                     type="checkbox"
                     checked={isSelected}
@@ -71,6 +75,29 @@ const WantListCard: React.FC<WantListCardProps> = ({ entry, customer, onClick, o
                     onClick={(e) => e.stopPropagation()}
                     className="h-5 w-5 text-blue-600"
                 />
+                {flags.length > 0 && (
+                    <>
+                        <span 
+                            className="text-xl cursor-help"
+                            data-tooltip-id={`wantlist-flag-${entry.id}`}
+                        >
+                            🚩
+                        </span>
+                        <Tooltip 
+                            id={`wantlist-flag-${entry.id}`}
+                            place="right"
+                            content={
+                                <div className="max-w-xs">
+                                    {flags.map((flag, idx) => (
+                                        <div key={idx} className="mb-1 text-sm">
+                                            {flag.note_text}
+                                        </div>
+                                    ))}
+                                </div>
+                            }
+                        />
+                    </>
+                )}
             </div>
 
             <div className="ml-8" onClick={onClick}>

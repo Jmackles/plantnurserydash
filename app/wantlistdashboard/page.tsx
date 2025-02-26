@@ -365,20 +365,44 @@ const WantListDashboard = () => {
         );
     };
 
-    const filteredEntries = wantListEntries.filter(entry => {
-        const matchesSearchQuery = entry.initial.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (entry.general_notes || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            customers.find(c => c.id === entry.customer_id)?.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            customers.find(c => c.id === entry.customer_id)?.last_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const statusPriority: { [key: string]: number } = {
+        'pending': 1,     // Keep pending as highest priority (first)
+        'completed': 0,   // Keep completed in middle
+        'canceled': 2     // Keep canceled at end
+    };
 
-        const matchesFilterStatus = filterStatus === '' || entry.status === filterStatus;
+    const filteredAndSortedEntries = wantListEntries
+        .filter(entry => {
+            const matchesSearchQuery = entry.initial.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (entry.general_notes || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customers.find(c => c.id === entry.customer_id)?.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                customers.find(c => c.id === entry.customer_id)?.last_name.toLowerCase().includes(searchQuery.toLowerCase());
 
-        return matchesSearchQuery && matchesFilterStatus;
-    });
+            const matchesFilterStatus = filterStatus === '' || entry.status === filterStatus;
 
-    const paginatedEntries = filteredEntries.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+            return matchesSearchQuery && matchesFilterStatus;
+        })
+        .sort((a, b) => {
+            // First sort by status priority
+            const statusDiff = (statusPriority[a.status] || 999) - (statusPriority[b.status] || 999);
+            if (statusDiff !== 0) return statusDiff;
+            
+            // Then sort by created date (newest first) within the same status
+            return new Date(b.created_at_text).getTime() - new Date(a.created_at_text).getTime();
+        });
 
-    const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
+    // Replace the existing pagination logic with this:
+    const paginatedEntries = filteredAndSortedEntries.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    );
+
+    const totalPages = Math.ceil(filteredAndSortedEntries.length / itemsPerPage);
+
+    // Update useEffect to reset to first page when filter changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filterStatus, searchQuery]);
 
     return (
         <main className="p-6 max-w-7xl mx-auto">

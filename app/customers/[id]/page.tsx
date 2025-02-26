@@ -318,18 +318,18 @@ const CustomerDetails = () => {
                         {/* Notes & History Panel */}
                         <div className="bg-white rounded-lg shadow p-4">
                             <div className="flex gap-2 mb-4">
-                                {(['note', 'memo', 'flag', 'alert'] as const).map(type => (
+                                {(['note', 'memo', 'flag', 'comment'] as const).map(type => (
                                     <button
                                         key={type}
                                         onClick={() => handleAddDoc(type)}
                                         className={`btn-secondary flex items-center gap-1 ${
                                             type === 'flag' ? 'text-yellow-700' :
-                                            type === 'alert' ? 'text-red-700' :
+                                            type === 'comment' ? 'text-red-700' :
                                             'text-sage-700'
                                         }`}
                                     >
                                         {type === 'flag' && '🚩'}
-                                        {type === 'alert' && '⚠️'}
+                                        {type === 'comment' && '💬'}
                                         {type === 'memo' && '📌'}
                                         {type === 'note' && '📝'}
                                         Add {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -353,7 +353,7 @@ const CustomerDetails = () => {
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span>{
                                                     note.note_type === 'flag' ? '🚩' :
-                                                    note.note_type === 'alert' ? '⚠️' :
+                                                    note.note_type === 'comment' ? '💬' :
                                                     note.note_type === 'memo' ? '📌' : '📝'
                                                 }</span>
                                                 <span className="text-sm text-gray-500">

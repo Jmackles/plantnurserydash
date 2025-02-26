@@ -26,8 +26,8 @@ export const DocumentationWidget: React.FC<DocumentationWidgetProps> = ({
                 return '🚩';
             case 'note':
                 return '📝';
-            case 'alert':
-                return '⚠️';
+            case 'comment':
+                return '💬';
             case 'memo':
                 return '📌';
             default:

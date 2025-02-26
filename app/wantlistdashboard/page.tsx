@@ -289,7 +289,6 @@ const WantListDashboard = () => {
         }
 
         try {
-            console.log(`Performing bulk action: ${action} with data:`, data);
             const status = action === 'complete' ? 'completed' : 'canceled';
             
             const updatedEntries = await Promise.all(
@@ -301,7 +300,7 @@ const WantListDashboard = () => {
                         body: JSON.stringify({
                             status,
                             initial: data.initial,
-                            notes: data.notes
+                            notes: data.notes || `Bulk ${action} by ${data.initial}`
                         })
                     });
 

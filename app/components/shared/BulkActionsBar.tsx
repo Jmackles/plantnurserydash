@@ -3,9 +3,9 @@ import React from 'react';
 interface BulkActionsBarProps {
     selectedCount: number;
     onClose: () => void;
-    onBulkAction: (action: 'complete' | 'cancel', data: { initial: string, general_notes: string }) => void;
-    bulkActionData: { initial: string, general_notes: string };
-    setBulkActionData: (data: { initial: string, general_notes: string }) => void;
+    onBulkAction: (action: 'complete' | 'cancel', data: { initial: string, notes: string }) => void;
+    bulkActionData: { initial: string, notes: string };
+    setBulkActionData: (data: { initial: string, notes: string }) => void;
 }
 
 const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
@@ -32,8 +32,8 @@ const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
                     <input
                         type="text"
                         placeholder="Notes"
-                        value={bulkActionData.general_notes}
-                        onChange={(e) => setBulkActionData({ ...bulkActionData, general_notes: e.target.value })}
+                        value={bulkActionData.notes}
+                        onChange={(e) => setBulkActionData({ ...bulkActionData, notes: e.target.value })}
                         className="input-field w-64 mb-0"
                     />
                 </div>
